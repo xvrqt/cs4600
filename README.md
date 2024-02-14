@@ -7,7 +7,7 @@ The course projects are hosted online as demos (in the `project_X/` sub-director
 
 A huge thank you to Cem Yuksel for the excellent instruction, and for making the course materials available online.
 
-# Projects
+## Projects
 **Project 1:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_1)] [[demo](https://cs4600.irlqt.me/project_1/)]
 
 **Project 2:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_2)] [[demo](https://cs4600.irlqt.me/project_2/)]
