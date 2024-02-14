@@ -1,0 +1,38 @@
+html {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-color: #222222;
+}
+
+#container {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-width: 400px;
+}
+
+.group {
+    color: #888888;
+    font-size: 2em;
+    font-family: Consolas, Monaco, Lucida Console, Liberation Mono, monospace;
+    white-space: pre;
+}
+
+.group img {
+    width: calc(100% - 20px);
+    padding: 10px;
+    border: solid #999 1px;
+}
+
+.group a {
+  color: #B294BB;
+}
+
+.group a:visited {
+  color: #B294BB;
+}
