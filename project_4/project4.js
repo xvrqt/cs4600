@@ -1,5 +1,5 @@
 // This function takes the projection matrix, the translation, and two rotation angles (in radians) as input arguments.
-// The two rotations are applied around x and y axes.
+// The two rotations are applied around x and y axes
 // It returns the combined 4x4 transformation matrix as an array in column-major order.
 // The given projection matrix is also a 4x4 matrix stored as an array in column-major order.
 // You can use the MatrixMult function defined in project4.html to multiply two 4x4 matrices in the same format.
@@ -45,15 +45,28 @@ function GetModelViewProjection( projectionMatrix, translationX, translationY, t
     return MatrixMult(projectionMatrix, transformationMatrix);
 }
 
-
-// [TO-DO] Complete the implementation of the following class.
-
 class MeshDrawer
 {
 	// The constructor is a good place for taking care of the necessary initializations.
 	constructor()
 	{
-		// [TO-DO] initializations
+		// Compile the shader program
+		this.prog = InitShaderProgram(this.vertex_shader, this.fragment_shader);
+        gl.useProgram(this.prog);
+		
+		// Pointer to the viewport perspective transformation matrix
+		this.mvp = gl.getUniformLocation(this.prog, 'mvp');
+
+        // Initialize the the flipYZ to the identity matrix
+        this.flipYZ = gl.getUniformLocation(this.prog, 'flipYZ');
+        gl.uniformMatrix4fv(this.flipYZ, false, Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1));
+		
+		// Get the ids of the vertex attributes in the shaders
+		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
+
+        // Initialist the Buffer
+        this.buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 	}
 	
 	// This method is called every time the user opens an OBJ file.
@@ -66,28 +79,51 @@ class MeshDrawer
 	// Similarly, every two consecutive elements in the texCoords array
 	// form the texture coordinate of a vertex.
 	// Note that this method can be called multiple times.
-	setMesh( vertPos, texCoords )
+	setMesh(vertPos, texCoords)
 	{
-		// [TO-DO] Update the contents of the vertex buffer objects.
+        gl.useProgram(this.prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 		this.numTriangles = vertPos.length / 3;
 	}
 	
 	// This method is called when the user changes the state of the
 	// "Swap Y-Z Axes" checkbox. 
 	// The argument is a boolean that indicates if the checkbox is checked.
-	swapYZ( swap )
+	swapYZ(swap)
 	{
-		// [TO-DO] Set the uniform parameter(s) of the vertex shader
+        /* Swap Y & Z Axes Matrix
+        +-       -+
+        | 1 0 0 0 |
+        | 0 0 1 0 |
+        | 0 1 0 0 |
+        | 0 0 0 1 |
+        +-       -+ */
+        let flipYZ   = Array(1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1);
+        let identity = Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+        let matrix   = swap ? flipYZ : identity;
+
+        gl.useProgram(this.prog);
+		gl.uniformMatrix4fv(this.flipYZ, false, matrix);
 	}
 	
 	// This method is called to draw the triangular mesh.
 	// The argument is the transformation matrix, the same matrix returned
 	// by the GetModelViewProjection function above.
-	draw( trans )
+	draw(trans)
 	{
-		// [TO-DO] Complete the WebGL initializations before drawing
+        gl.useProgram(this.prog);
 
-		gl.drawArrays( gl.TRIANGLES, 0, this.numTriangles );
+        // Set the vertices array, and attribute pointer
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+        gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0,0);
+        gl.enableVertexAttribArray(this.vertex);
+
+        // Set the perspective view matrix uniform variable
+		gl.uniformMatrix4fv(this.mvp, false, trans);
+
+        // The Show
+		gl.drawArrays(gl.TRIANGLES, 0, this.numTriangles);
 	}
 	
 	// This method is called to set the texture of the mesh.
@@ -110,5 +146,28 @@ class MeshDrawer
 	{
 		// [TO-DO] set the uniform parameter(s) of the fragment shader to specify if it should use the texture.
 	}
-	
+    
+    // Vertex Shader GLSL
+   vertex_shader = `
+        uniform mat4 mvp;
+        uniform mat4 flipYZ;
+        attribute vec3 vertex;
+        void main()
+        {
+            // flipYZ will be the identity matrix if swapYZ is not set
+            gl_Position = mvp * flipYZ * vec4(vertex,1);
+        }
+    `;
+    
+    // Fragment Shader GLSL
+   fragment_shader = `
+        precision mediump float;
+        void main()
+        {
+              float ndcDepth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
+              float clipDepth = ndcDepth / gl_FragCoord.w;
+              float c = (clipDepth * 0.5) + 0.5;
+              gl_FragColor = vec4(c*c*c,0.0,c*c*c,1);
+        }
+    `;
 }

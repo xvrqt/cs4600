@@ -288,9 +288,44 @@ function SwapYZ( param )
 	DrawScene();
 }
 
+function LoadModel(model) {
+    var mesh = new ObjMesh;
+
+    var xhttp = new XMLHttpRequest();
+    var url = "./" + model + ".obj";
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            mesh.parse( this.responseText );
+            var box = mesh.getBoundingBox();
+            var shift = [
+                -(box.min[0]+box.max[0])/2,
+                -(box.min[1]+box.max[1])/2,
+                -(box.min[2]+box.max[2])/2
+            ];
+            var size = [
+                (box.max[0]-box.min[0])/2,
+                (box.max[1]-box.min[1])/2,
+                (box.max[2]-box.min[2])/2
+            ];
+            var maxSize = Math.max( size[0], size[1], size[2] );
+            var scale = 1/maxSize;
+            mesh.shiftAndScale( shift, scale );
+            var buffers = mesh.getVertexBuffers();
+            meshDrawer.setMesh(buffers.positionBuffer, buffers.texCoordBuffer);
+            DrawScene();
+        }
+    };
+    xhttp.open("GET", url, true);
+    xhttp.send();
+}
+
 function LoadObj( param )
 {
-	if ( param.files && param.files[0] ) {
+    var file;
+    if (typeof param == "string") { file = param; }
+    else { file = param.files[0]; }
+
+	if ( file ) {
 		var reader = new FileReader();
 		reader.onload = function(e) {
 			var mesh = new ObjMesh;
@@ -310,10 +345,10 @@ function LoadObj( param )
 			var scale = 1/maxSize;
 			mesh.shiftAndScale( shift, scale );
 			var buffers = mesh.getVertexBuffers();
-			meshDrawer.setMesh( buffers.positionBuffer, buffers.texCoordBuffer );
+			meshDrawer.setMesh(buffers.positionBuffer, buffers.texCoordBuffer);
 			DrawScene();
 		}
-		reader.readAsText( param.files[0] );
+		reader.readAsText( file );
 	}
 }
 
@@ -421,15 +456,26 @@ canvas {
 <div id="canvas-div"><canvas id="canvas"></canvas></div><div id="controls-div">
 <div id="controls">
 <div class="control-group">
+    <h3>Controls</h3>
 <div class="control"><input id="show-box" name="show-box" type="checkbox" onchange="DrawScene()" checked /><label for="show-box"> Show Box</label></div>
 <div class="control"><input id="show-texture" name="show-texture" type="checkbox" onchange="ShowTexture(this)" checked /><label for="show-texture"> Show Texture</label></div>
 <div class="control"><input id="swap-yz" name="swap-yz" type="checkbox" onchange="SwapYZ(this)" /><label for="swap-yz"> Swap Y-Z Axes</label></div>
 <div class="control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
 <div class="control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
+<hr />
 </div>
 <div class="control-group">
+    <h3>Load Model + Texture</h3>
 <div class="control">OBJ model:<br/><input id="obj" type="file" onchange="LoadObj(this)" accept=".obj"/></div>
 <div class="control">Texture image:<br/><input id="texture" type="file" onchange="LoadTexture(this)" accept="image/*"/></div>
+<hr />
+</div>
+<div class="control-group">
+    <h3>Pre-Loaded Models</h3>
+    <div class="control"><br/><button type="button" onclick="LoadModel('cat')">Cat</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadModel('woman')">Woman</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadModel('demon')">Demon</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadModel('teapot')">Teapot</button></div>
 </div>
 <div class="control-group">
 <img id="texture-img" />
