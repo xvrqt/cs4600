@@ -60,13 +60,18 @@ class MeshDrawer
         // Initialize the the flipYZ to the identity matrix
         this.flipYZ = gl.getUniformLocation(this.prog, 'flipYZ');
         gl.uniformMatrix4fv(this.flipYZ, false, Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1));
+
+        // Initialize if we show the texture
+        this.show_texture = gl.getUniformLocation(this.prog, 'show_texture');
+        gl.uniform1i(this.show_texture, 0);
 		
 		// Get the ids of the vertex attributes in the shaders
 		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
+        this.vert_buffer = gl.createBuffer();
 
-        // Initialist the Buffer
-        this.buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+        // Pointer to the texture coordinates
+        this.txc = gl.getAttribLocation(this.prog, 'txc');
+        this.tex_buffer = gl.createBuffer();
 	}
 	
 	// This method is called every time the user opens an OBJ file.
@@ -82,7 +87,13 @@ class MeshDrawer
 	setMesh(vertPos, texCoords)
 	{
         gl.useProgram(this.prog);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+        // Texture Coords
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+
+        // Vertices
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 		this.numTriangles = vertPos.length / 3;
 	}
@@ -115,9 +126,14 @@ class MeshDrawer
         gl.useProgram(this.prog);
 
         // Set the vertices array, and attribute pointer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-        gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
+        gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.vertex);
+        //
+        // Set the texture coordinates array, and attribute pointer
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
+        gl.vertexAttribPointer(this.txc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.txc);
 
         // Set the perspective view matrix uniform variable
 		gl.uniformMatrix4fv(this.mvp, false, trans);
@@ -128,46 +144,77 @@ class MeshDrawer
 	
 	// This method is called to set the texture of the mesh.
 	// The argument is an HTML IMG element containing the texture data.
-	setTexture( img )
+	setTexture(img)
 	{
-		// [TO-DO] Bind the texture
+        // Create the texture
+        const mipmaplvl = 0;
+        const texture = gl.createTexture();
+        gl.useProgram(this.prog);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.texImage2D(gl.TEXTURE_2D, mipmaplvl, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+        gl.generateMipmap(gl.TEXTURE_2D);
 
-		// You can set the texture image data using the following command.
-		gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img );
+        // Set texture parameters
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
-		// [TO-DO] Now that we have a texture, it might be a good idea to set
-		// some uniform parameter(s) of the fragment shader, so that it uses the texture.
+        // Bind Texture to the the 0th Texture Unit
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        let sampler = gl.getUniformLocation(this.prog, 'texture');
+        gl.uniform1i(sampler, 0);
 	}
 	
 	// This method is called when the user changes the state of the
 	// "Show Texture" checkbox. 
 	// The argument is a boolean that indicates if the checkbox is checked.
-	showTexture( show )
+	showTexture(show)
 	{
-		// [TO-DO] set the uniform parameter(s) of the fragment shader to specify if it should use the texture.
+        gl.useProgram(this.prog);
+        if(show) { gl.uniform1i(this.show_texture, 1); }
+        else {gl.uniform1i(this.show_texture, 0); }
 	}
     
     // Vertex Shader GLSL
    vertex_shader = `
         uniform mat4 mvp;
         uniform mat4 flipYZ;
+
         attribute vec3 vertex;
+        attribute vec2 txc;
+
+        varying vec2 textureCoord;
+
         void main()
         {
             // flipYZ will be the identity matrix if swapYZ is not set
             gl_Position = mvp * flipYZ * vec4(vertex,1);
+            textureCoord = txc;
         }
     `;
     
     // Fragment Shader GLSL
    fragment_shader = `
         precision mediump float;
+
+        uniform sampler2D texture;
+        uniform int show_texture;
+
+        varying vec2 textureCoord;
+
         void main()
         {
+            if(show_texture != 0) {
+                gl_FragColor = texture2D(texture,textureCoord);
+            } else {
               float ndcDepth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
               float clipDepth = ndcDepth / gl_FragCoord.w;
               float c = (clipDepth * 0.5) + 0.5;
               gl_FragColor = vec4(c*c*c,0.0,c*c*c,1);
+            }
         }
     `;
 }
