@@ -55,16 +55,17 @@ class MeshDrawer
 		this.prog = InitShaderProgram(this.vertex_shader, this.fragment_shader);
         gl.useProgram(this.prog);
 		
+        // Pointer to the model-view transformation matrix
+        this.mv = gl.getUniformLocation(this.prog, 'mv');
 		// Pointer to the viewport perspective transformation matrix
 		this.mvp = gl.getUniformLocation(this.prog, 'mvp');
-        // Pointer to the model-view transformation matrix
-        // this.mv = gl.getUniformLocation(this.prog, 'mv');
-        // Pointer to the normal matrix 
-        // this.mvn = gl.getUniformLocation(this.prog, 'mvn');
+        // Pointer to the normal matrix (inverse transpose of 'mv')
+        this.mvn = gl.getUniformLocation(this.prog, 'mvn');
+
         // Pointer to the light direction
-        // this.light = gl.getUniformLocation(this.prog, 'light');
-        // this.light_direction = Array(0,0,0,1);
-        // gl.uniform4fv(this.light, this.light_direction);
+        this.light = gl.getUniformLocation(this.prog, 'light');
+        this.light_direction = Array(1,1,1,1);
+        gl.uniform4fv(this.light, this.light_direction);
 
         // Pointer to the shininess value
         // this.shininess = gl.getUniformLocation(this.prog, 'shininess');
@@ -83,18 +84,15 @@ class MeshDrawer
 		
 		// Get the ids of the vertex attributes in the shaders
 		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
-        console.log(this.vertex);
         this.vert_buffer = gl.createBuffer();
 
         // Pointer to the texture coordinates
         this.txc = gl.getAttribLocation(this.prog, 'txc');
-        console.log(this.txc);
         this.tex_buffer = gl.createBuffer();
 
         // Pointer to the normals
-        // this.normal = gl.getAttribLocation(this.prog, 'normal');
-        // console.log(this.normal);
-        // this.normal_buffer = gl.createBuffer();
+        this.normal = gl.getAttribLocation(this.prog, 'normal');
+        this.normal_buffer = gl.createBuffer();
 	}
 	
 	// This method is called every time the user opens an OBJ file.
@@ -110,29 +108,19 @@ class MeshDrawer
 	// Note that this method can be called multiple times.
 	setMesh( vertPos, texCoords, normals )
 	{
+        // Texture
         gl.useProgram(this.prog);
-        console.log(vertPos);
-        console.log(texCoords);
-        console.log(normals);
-
-        // Texture Coords
-        // Should be 2/3'rds as many entries as the vertices
-        // let req_length = Math.floor(vertPos.length * 2 / 3);
-        // if(texCoords.length != req_length) {
-        //     texCoords = Array(req_length);
-        // }
         gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
         // Normals
-        // gl.bindBuffer(gl.ARRAY_BUFFER, this.normal_buffer);
-        // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normal_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 
         // Vertices
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 		this.numTriangles = vertPos.length / 3;
-        console.log(this.numTriangles);
 	}
 	
 	// This method is called when the user changes the state of the
@@ -152,7 +140,6 @@ class MeshDrawer
 	// transformation matrix, which is the inverse-transpose of matrixMV.
 	draw( matrixMVP, matrixMV, matrixNormal )
 	{
-
         gl.useProgram(this.prog);
 
         // Set the texture coordinates array, and attribute pointer
@@ -161,9 +148,9 @@ class MeshDrawer
         gl.enableVertexAttribArray(this.txc);
 
         // Set the vertices array, and attribute pointer
-        // gl.bindBuffer(gl.ARRAY_BUFFER, this.normal_buffer);
-        // gl.vertexAttribPointer(this.normal, 1, gl.FLOAT, false, 0, 0);
-        // gl.enableVertexAttribArray(this.normal);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normal_buffer);
+        gl.vertexAttribPointer(this.normal, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.normal);
 
         // Set the vertices array, and attribute pointer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
@@ -171,13 +158,14 @@ class MeshDrawer
         gl.enableVertexAttribArray(this.vertex);
 
         // Set the perspective, and view-model matrices as uniform variables
-		// gl.uniformMatrix4fv(this.mv, false, matrixMVP);
+		gl.uniformMatrix4fv(this.mv, false, matrixMV);
 		gl.uniformMatrix4fv(this.mvp, false, matrixMVP);
-		// gl.uniformMatrix4fv(this.mvn, false, matrixNormal);
-        // gl.uniform4fv(this.light, this.light_direction);
+		gl.uniformMatrix3fv(this.mvn, false, matrixNormal);
+
+        // Set the light direction
+        gl.uniform4fv(this.light, this.light_direction);
 
         // The Show
-        console.log(this.numTriangles);
 		gl.drawArrays(gl.TRIANGLES, 0, this.numTriangles);
 	}
 	
@@ -213,14 +201,15 @@ class MeshDrawer
 	showTexture( show )
 	{
         gl.useProgram(this.prog);
-        if(show) { gl.uniform1i(this.show_texture, 1); }
+        if (show) { gl.uniform1i(this.show_texture, 1); }
         else {gl.uniform1i(this.show_texture, 0); }
 	}
 	
 	// This method is called to set the incoming light direction
 	setLightDir( x, y, z )
 	{
-        this.light_direction = Array(x,y,z,1);
+        // We invert the direction to get a vector to the light source
+        this.light_direction = Array(-x,-y,-z,1);
 	}
 	
 	// This method is called to set the shininess of the material
@@ -236,11 +225,9 @@ class MeshDrawer
     // Vertex Shader GLSL
    vertex_shader = `
         uniform mat4 mv;
-        uniform mat4 mvn;
         uniform mat4 mvp;
         uniform mat4 flipYZ;
-
-        uniform vec4 light;
+        uniform mat3 mvn;
 
         uniform int show_texture;
         uniform float shininess;
@@ -250,35 +237,47 @@ class MeshDrawer
         attribute vec3 vertex;
 
         varying vec2 textureCoord;
+        varying vec4 new_normal;
 
         void main()
         {
             // flipYZ will be the identity matrix if swapYZ is not set
+            // Transform the vertex into model-view-projection space
             gl_Position = mvp * flipYZ * vec4(vertex,1);
+
+            // Transform the normal vector into model-view space
+            new_normal =  vec4(mvn * normal, 1);
+
+            // If we're showing the texture, pass the texture coordinates to the fragment shader
             if(show_texture != 0) { textureCoord = txc; }
         }
     `;
     
     // Fragment Shader GLSL
    fragment_shader = `
-        precision mediump float;
         precision highp int;
+        precision mediump float;
 
         uniform sampler2D texture;
+
         uniform int show_texture;
+        uniform vec4 light;
 
         varying vec2 textureCoord;
+        varying vec4 new_normal;
+        varying vec4 new_light;
 
         void main()
         {
-            if(show_texture != 0) {
-                gl_FragColor = texture2D(texture,textureCoord);
-            } else {
-              float ndcDepth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
-              float clipDepth = ndcDepth / gl_FragCoord.w;
-              float c = (clipDepth * 0.5) + 0.5;
-              gl_FragColor = vec4(c*c*c,0.0,c*c*c,1);
-            }
+            vec4 final_color;
+            // If the teture is enabled, grab our base color from the texture
+            if(show_texture != 0) { final_color = texture2D(texture,textureCoord); } 
+            // Grab a default color
+            else { final_color = vec4(0.5,0.25,0.8,1); }
+
+            // Calculate the angle between the surface normal and the light source
+            float theta = dot(light, new_normal);
+            gl_FragColor = theta * final_color;
         }
     `;
 }
