@@ -89,6 +89,11 @@ class MeshDrawer
         gl.useProgram(this.prog);
 
         // Texture Coords
+        // Should be 2/3'rds as many entries as the vertices
+        let req_length = Math.floor(vertPos.length * 2 / 3);
+        if(texCoords.length != req_length) {
+            texCoords = Array(req_length);
+        }
         gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 

@@ -323,6 +323,8 @@ function LoadTexture2( param )
 {
     var url = "./" + param + ".jpg";
     var img = document.getElementById('texture-img');
+    var checkbox = document.getElementById('show-texture');
+    checkbox.checked = true;
     img.onload = function() {
         ShowTexture({checked: true});
         meshDrawer.setTexture(img);
@@ -485,8 +487,8 @@ canvas {
 <div class="control-group">
     <h3>Pre-Loaded Models</h3>
     <div class="control"><br/><button type="button" onclick="LoadModel('cat')">Cat</button></div>
-    <div class="control"><br/><button type="button" onclick="LoadModel('woman')">Woman</button></div>
     <div class="control"><br/><button type="button" onclick="LoadModel('teapot')">Teapot</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadModel('woman')" title="Does not have texture coordinates">Woman</button></div>
     <hr />
 </div>
 <div class="control-group">
