@@ -335,6 +335,7 @@ class LightView
 			lightView.canvas.onmousemove = null;
 		}
 	}
+
 	
 	updateLightDir()
 	{
@@ -440,6 +441,7 @@ window.onload = function() {
 		canvas.onmousemove = null;
 	}
 	
+    AutoRotate(document.getElementById('auto-rotate'));
 	SetShininess( document.getElementById('shininess-exp') );
 	
 	DrawScene();
@@ -466,6 +468,51 @@ function AutoRotate( param )
 		clearInterval( timer );
 		document.getElementById('rotation-speed').disabled = true;
 	}
+}
+
+function LoadModel(model) {
+    var mesh = new ObjMesh;
+
+    var xhttp = new XMLHttpRequest();
+    var url = "./" + model + ".obj";
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            mesh.parse( this.responseText );
+            var box = mesh.getBoundingBox();
+            var shift = [
+                -(box.min[0]+box.max[0])/2,
+                -(box.min[1]+box.max[1])/2,
+                -(box.min[2]+box.max[2])/2
+            ];
+            var size = [
+                (box.max[0]-box.min[0])/2,
+                (box.max[1]-box.min[1])/2,
+                (box.max[2]-box.min[2])/2
+            ];
+            var maxSize = Math.max( size[0], size[1], size[2] );
+            var scale = 1/maxSize;
+            mesh.shiftAndScale( shift, scale );
+            var buffers = mesh.getVertexBuffers();
+            meshDrawer.setMesh(buffers.positionBuffer, buffers.texCoordBuffer, buffers.normalBuffer);
+            DrawScene();
+        }
+    };
+    xhttp.open("GET", url, true);
+    xhttp.send();
+}
+
+function LoadTexture2( param )
+{
+    var url = "./" + param + ".jpg";
+    var img = document.getElementById('texture-img');
+    var checkbox = document.getElementById('show-texture');
+    checkbox.checked = true;
+    img.onload = function() {
+        ShowTexture({checked: true});
+        meshDrawer.setTexture(img);
+        DrawScene();
+    }
+    img.src = url;
 }
 
 function ShowTexture( param )
@@ -659,6 +706,16 @@ input[type=range] {
 <div class="control-group">
 <div class="control">OBJ model:<br/><input id="obj" type="file" onchange="LoadObj(this)" accept=".obj"/></div>
 <div class="control">Texture image:<br/><input id="texture" type="file" onchange="LoadTexture(this)" accept="image/*"/></div>
+</div>
+<div class="control-group">
+    <h3>Pre-Loaded Models</h3>
+    <div class="control"><br/><button type="button" onclick="LoadModel('teapot')">Teapot</button></div>
+    <hr />
+</div>
+<div class="control-group">
+    <h3>Pre-Loaded Textures</h3>
+    <div class="control"><br/><button type="button" onclick="LoadTexture2('bricks')">Bricks</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadTexture2('wood')">Wood</button></div>
 </div>
 <div class="control-group">
 <img id="texture-img" />
