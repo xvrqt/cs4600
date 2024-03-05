@@ -319,6 +319,18 @@ function LoadModel(model) {
     xhttp.send();
 }
 
+function LoadTexture2( param )
+{
+    var url = "./" + param + ".jpg";
+    var img = document.getElementById('texture-img');
+    img.onload = function() {
+        ShowTexture({checked: true});
+        meshDrawer.setTexture(img);
+        DrawScene();
+    }
+    img.src = url;
+}
+
 function LoadObj( param )
 {
     var file;
@@ -476,6 +488,12 @@ canvas {
     <div class="control"><br/><button type="button" onclick="LoadModel('woman')">Woman</button></div>
     <div class="control"><br/><button type="button" onclick="LoadModel('demon')">Demon</button></div>
     <div class="control"><br/><button type="button" onclick="LoadModel('teapot')">Teapot</button></div>
+    <hr />
+</div>
+<div class="control-group">
+    <h3>Pre-Loaded Textures</h3>
+    <div class="control"><br/><button type="button" onclick="LoadTexture2('bricks')">Bricks</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadTexture2('wood')">Wood</button></div>
 </div>
 <div class="control-group">
 <img id="texture-img" />

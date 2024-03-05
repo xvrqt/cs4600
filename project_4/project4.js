@@ -125,21 +125,21 @@ class MeshDrawer
 	{
         gl.useProgram(this.prog);
 
-        // Set the vertices array, and attribute pointer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
-        gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.vertex);
-        //
         // Set the texture coordinates array, and attribute pointer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
         gl.vertexAttribPointer(this.txc, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.txc);
 
+        // Set the vertices array, and attribute pointer
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
+        gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.vertex);
+
         // Set the perspective view matrix uniform variable
 		gl.uniformMatrix4fv(this.mvp, false, trans);
 
         // The Show
-		gl.drawArrays(gl.TRIANGLES, 0, this.numTriangles);
+		gl.drawArrays(gl.TRIANGLES, this.vertex, this.numTriangles);
 	}
 	
 	// This method is called to set the texture of the mesh.
@@ -182,6 +182,7 @@ class MeshDrawer
    vertex_shader = `
         uniform mat4 mvp;
         uniform mat4 flipYZ;
+        uniform int show_texture;
 
         attribute vec3 vertex;
         attribute vec2 txc;
@@ -192,13 +193,14 @@ class MeshDrawer
         {
             // flipYZ will be the identity matrix if swapYZ is not set
             gl_Position = mvp * flipYZ * vec4(vertex,1);
-            textureCoord = txc;
+            if(show_texture != 0) { textureCoord = txc; }
         }
     `;
     
     // Fragment Shader GLSL
    fragment_shader = `
         precision mediump float;
+        precision highp int;
 
         uniform sampler2D texture;
         uniform int show_texture;
