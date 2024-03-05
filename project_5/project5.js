@@ -4,15 +4,42 @@
 // You can use the MatrixMult function defined in project5.html to multiply two 4x4 matrices in the same format.
 function GetModelViewMatrix( translationX, translationY, translationZ, rotationX, rotationY )
 {
-	// [TO-DO] Modify the code below to form the transformation matrix.
-	var trans = [
+    // Convenience
+	let sin = Math.sin;
+	let cos = Math.cos;
+
+    /* Rotation Around X Axis
+	 * +-                        -+
+     * |   1       0      0     0 | 
+	 * |   0     cos(d) -sin(d) 0 |
+	 * |   0     sin(d)  cos(d) 0 |
+	 * |   0       0      0     1 |
+	 * +-                        -+
+	 */  
+	let rx = rotationX;
+	let rotXM= Array(1,0,0,0, 0,cos(rx),sin(rx),0, 0,-sin(rx),cos(rx),0, 0,0,0,1); 
+
+    /* Rotation Around X Axis
+	 * +-                          -+
+     * |  cos(d)    0     sin(d)  0 | 
+	 * |    0       1      0      0 |
+	 * | -sin(d)    0     cos(d)  0 |
+	 * |    0       0      0      1 |
+	 * +-                          -+
+	 */  
+	let ry = rotationY;
+	let rotYM = Array(cos(ry),0,-sin(ry),0, 0,1,0,0, sin(ry),0,cos(ry),0, 0,0,0,1);
+    let rotationMatrix = MatrixMult(rotYM, rotXM);
+
+	let translationMatrix = [
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		translationX, translationY, translationZ, 1
 	];
-	var mv = trans;
-	return mv;
+
+    // Move after we rotate, so we don't rotate around former origin
+    return MatrixMult(translationMatrix, rotationMatrix);
 }
 
 
@@ -23,7 +50,37 @@ class MeshDrawer
 	// The constructor is a good place for taking care of the necessary initializations.
 	constructor()
 	{
-		// [TO-DO] initializations
+
+		// Compile the shader program
+		this.prog = InitShaderProgram(this.vertex_shader, this.fragment_shader);
+        gl.useProgram(this.prog);
+		
+		// Pointer to the viewport perspective transformation matrix
+		this.mvp = gl.getUniformLocation(this.prog, 'mvp');
+        // Pointer to the model-view transformation matrix
+        this.mv = gl.getUniformLocation(this.prog, 'mv');
+
+        // Initialize the the flipYZ to the identity matrix
+        this.flipYZ = gl.getUniformLocation(this.prog, 'flipYZ');
+        let flipYZ_transform = document.getElementById('swap-yz').checked ? this.yz_flip_matrix : this.identity_matrix;
+        gl.uniformMatrix4fv(this.flipYZ, false, flipYZ_transform);
+
+        // Initialize if we show the texture
+        this.show_texture = gl.getUniformLocation(this.prog, 'show_texture');
+        let checked = document.getElementById('show-texture').checked ? 1 : 0;
+        gl.uniform1i(this.show_texture, checked);
+		
+		// Get the ids of the vertex attributes in the shaders
+		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
+        this.vert_buffer = gl.createBuffer();
+
+        // Pointer to the texture coordinates
+        this.txc = gl.getAttribLocation(this.prog, 'txc');
+        this.tex_buffer = gl.createBuffer();
+
+        // Pointer to the normals
+        this.normal = gl.getAttribLocation(this.prog, 'normal');
+        this.normal_buffer = gl.createBuffer();
 	}
 	
 	// This method is called every time the user opens an OBJ file.
@@ -95,4 +152,53 @@ class MeshDrawer
 	{
 		// [TO-DO] set the uniform parameter(s) of the fragment shader to specify the shininess.
 	}
+
+    // Convenience
+    identity_matrix = Array(1,0,0,0,  0,1,0,0,  0,0,1,0,  0,0,0,1);
+    yz_flip_matrix  = Array(1,0,0,0,  0,0,1,0,  0,1,0,0,  0,0,0,1);
+
+    // Vertex Shader GLSL
+   vertex_shader = `
+        uniform mat4 mv;
+        uniform mat4 mvp;
+        uniform mat4 flipYZ;
+
+        uniform int show_texture;
+
+        attribute vec2 txc;
+        attribute vec3 normal;
+        attribute vec3 vertex;
+
+        varying vec2 textureCoord;
+
+        void main()
+        {
+            // flipYZ will be the identity matrix if swapYZ is not set
+            gl_Position = mvp * flipYZ * vec4(vertex,1);
+            if(show_texture != 0) { textureCoord = txc; }
+        }
+    `;
+    
+    // Fragment Shader GLSL
+   fragment_shader = `
+        precision mediump float;
+        precision highp int;
+
+        uniform sampler2D texture;
+        uniform int show_texture;
+
+        varying vec2 textureCoord;
+
+        void main()
+        {
+            if(show_texture != 0) {
+                gl_FragColor = texture2D(texture,textureCoord);
+            } else {
+              float ndcDepth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
+              float clipDepth = ndcDepth / gl_FragCoord.w;
+              float c = (clipDepth * 0.5) + 0.5;
+              gl_FragColor = vec4(c*c*c,0.0,c*c*c,1);
+            }
+        }
+    `;
 }
