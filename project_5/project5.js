@@ -68,9 +68,10 @@ class MeshDrawer
         gl.uniform4fv(this.light, this.light_direction);
 
         // Pointer to the shininess value
-        // this.shininess = gl.getUniformLocation(this.prog, 'shininess');
-        // this.alpha = document.getElementById('shininess-exp').value;
-        // gl.uniform1f(this.shininess, this.alpha);
+        this.shininess = gl.getUniformLocation(this.prog, 'shininess');
+        this.alpha = document.getElementById('shininess-exp').value;
+        console.log(this.alpha);
+        gl.uniform1f(this.shininess, this.alpha);
 
         // Initialize the the flipYZ to the identity matrix
         this.flipYZ = gl.getUniformLocation(this.prog, 'flipYZ');
@@ -81,7 +82,7 @@ class MeshDrawer
         this.show_texture = gl.getUniformLocation(this.prog, 'show_texture');
         let checked = document.getElementById('show-texture').checked ? 1 : 0;
         gl.uniform1i(this.show_texture, checked);
-		
+
 		// Get the ids of the vertex attributes in the shaders
 		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
         this.vert_buffer = gl.createBuffer();
@@ -165,6 +166,9 @@ class MeshDrawer
         // Set the light direction
         gl.uniform4fv(this.light, this.light_direction);
 
+        // Set the alpha term of specular highlighting (aka 'shininess')
+        gl.uniform1f(this.shininess, this.alpha);
+
         // The Show
 		gl.drawArrays(gl.TRIANGLES, 0, this.numTriangles);
 	}
@@ -230,7 +234,6 @@ class MeshDrawer
         uniform mat3 mvn;
 
         uniform int show_texture;
-        uniform float shininess;
 
         attribute vec2 txc;
         attribute vec3 normal;
@@ -246,7 +249,7 @@ class MeshDrawer
             gl_Position = mvp * flipYZ * vec4(vertex,1);
 
             // Transform the normal vector into model-view space
-            new_normal =  vec4(mvn * normal, 1);
+            new_normal = vec4(mvn * mat3(flipYZ) * normal, 1);
 
             // If we're showing the texture, pass the texture coordinates to the fragment shader
             if(show_texture != 0) { textureCoord = txc; }
@@ -258,26 +261,44 @@ class MeshDrawer
         precision highp int;
         precision mediump float;
 
-        uniform sampler2D texture;
-
         uniform int show_texture;
+        uniform float shininess;
+
         uniform vec4 light;
+        //uniform mat4 mvp;
+        uniform sampler2D texture;
 
         varying vec2 textureCoord;
         varying vec4 new_normal;
-        varying vec4 new_light;
 
         void main()
         {
-            vec4 final_color;
-            // If the teture is enabled, grab our base color from the texture
-            if(show_texture != 0) { final_color = texture2D(texture,textureCoord); } 
-            // Grab a default color
-            else { final_color = vec4(0.5,0.25,0.8,1); }
+            // Light color + intensity
+            vec4 light_color = vec4(.75,.75,.75,1.0);
+            vec4 ambient_light_color = vec4(.1,.1,.1,1.0);
 
-            // Calculate the angle between the surface normal and the light source
-            float theta = dot(light, new_normal);
-            gl_FragColor = theta * final_color;
+            // Geometry Component
+            float cos_theta = dot(light, new_normal);
+            float geometry_term = max(cos_theta, 0.0);
+
+            // Diffuse Color Component
+            vec4 diffuse_color;
+            // If the teture is enabled, grab our base color from the texture
+            if(show_texture != 0) { diffuse_color = texture2D(texture,textureCoord); } 
+            // Grab a default color
+            else { diffuse_color = vec4(0.5,0.25,0.8,1.0); }
+            vec4 diffuse = geometry_term * diffuse_color;
+
+            // Ambient Light Component
+            vec4 ambient = ambient_light_color * diffuse_color;
+
+            // Specular material component
+            vec4 r = (2.0 * dot(light, new_normal) * new_normal) + (-1.0 * light);
+            float cos_phi = max(dot(r, vec4(0.0,0.0,1.0,1.0)), 0.0);
+            vec4 spec_val = vec4(1.0,1.0,1.0,1.0);
+            vec4 specular = spec_val * pow(cos_phi, shininess);
+
+            gl_FragColor = (light_color * (diffuse + specular)) + ambient;
         }
     `;
 }
