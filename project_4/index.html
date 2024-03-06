@@ -249,6 +249,11 @@ window.onload = function() {
 	canvas.onmouseup = canvas.onmouseleave = function() {
 		canvas.onmousemove = null;
 	}
+    LoadModel('teapot');
+    LoadTexture2('wood');
+
+    document.getElementById('auto-rotate').checked = true;
+    AutoRotate(document.getElementById('auto-rotate'));
 	
 	DrawScene();
 };
