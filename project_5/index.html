@@ -412,6 +412,11 @@ window.onload = function() {
 	showBox = document.getElementById('show-box');
 	InitWebGL();
 	lightView = new LightView();
+    lightView.rotX = -0.703;
+    lightView.rotY = -1.015;
+    lightView.updateLightDir();
+    lightView.draw();
+
 	canvas.zoom = function( s ) {
 		transZ *= s/canvas.height + 1;
 		UpdateProjectionMatrix();
@@ -441,7 +446,11 @@ window.onload = function() {
 		canvas.onmousemove = null;
 	}
 	
+    LoadModel('teapot');
+    LoadTexture2('bricks');
+    document.getElementById('auto-rotate').checked = true;
     AutoRotate(document.getElementById('auto-rotate'));
+	document.getElementById('shininess-exp').value = 50;
 	SetShininess( document.getElementById('shininess-exp') );
 	
 	DrawScene();
