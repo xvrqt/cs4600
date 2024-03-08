@@ -38,7 +38,7 @@ bool IntersectRay( inout HitInfo hit, Ray ray );
 // Shades the given point and returns the computed color.
 vec3 Shade( Material mtl, vec3 position, vec3 normal, vec3 view )
 {
-    vec3 color = vec3(0.0,0.0,0.0);
+	vec3 color = vec3(0,0,0);
 	for ( int i=0; i<NUM_LIGHTS; ++i ) {
         Light light = lights[i];
         bool shadowed = false;
@@ -56,16 +56,7 @@ vec3 Shade( Material mtl, vec3 position, vec3 normal, vec3 view )
             float cos_theta = dot(normalize(light.position), normal);
             float geometry_term = max(cos_theta, 0.0);
 
-            // Diffuse Color Component
-            vec3 diffuse = geometry_term * mtl.k_d;
-
-            // Specular material component
-            vec3 r = 2.0 * dot(light.position, normal) * normal - light.position;
-            r = normalize(r);
-            float cos_phi = max(dot(view, r), 0.0);
-            vec3 specular = mtl.k_s * pow(cos_phi, mtl.n);
-
-            color += light.intensity * (diffuse + specular);
+            color += light.intensity * geometry_term * mtl.k_d;
         }
 	}
 	return color;
@@ -115,7 +106,6 @@ vec4 RayTracer( Ray ray )
 	HitInfo hit;
 	if ( IntersectRay( hit, ray ) ) {
 		vec3 view = normalize( -ray.dir );
-        // Diffuse Color of the Sphere
 		vec3 clr = Shade( hit.mtl, hit.position, hit.normal, view );
 		
 		// Compute reflections
@@ -125,7 +115,6 @@ vec4 RayTracer( Ray ray )
         Ray r;	// this is the reflection ray
         r.pos = hit.position;
         r.dir = 2.0 * dot(view, hit.normal) * hit.normal - view;
-        r.dir = normalize(r.dir);
         HitInfo h;	// reflection hit info
 
 		for ( int bounce=0; bounce<MAX_BOUNCES; ++bounce ) {
@@ -136,13 +125,12 @@ vec4 RayTracer( Ray ray )
                 // Shade the point (specular)
                 vec3 v = (-r.dir);
                 vec3 c = Shade(h.mtl, h.position, h.normal, v);
-                clr += k_s * c;
                 k_s = h.mtl.k_s;
+                clr = k_s * c;
 
                 // Update Loop variables
                 r.pos = h.position;
                 r.dir = 2.0 * dot(v,h.normal) * h.normal - v;
-                r.dir = normalize(r.dir);
                 
 			} else {
 				// The refleciton ray did not intersect with anything,
