@@ -62,9 +62,9 @@ vec3 Shade( Material mtl, vec3 position, vec3 normal, vec3 view )
             // Specular material component
             vec3 r = 2.0 * dot(light.position, normal) * normal - light.position;
             r = normalize(r);
-            vec3 h = normalize(light.position + view) / (length(light.position + view));
+            vec3 h = (light.position + view) / length(light.position + view);
             float cos_phi = max(dot(view, r), 0.0);
-            //cos_phi = max(dot(h, normal), 0.0);
+            cos_phi = max(dot(h, normal), 0.0);
             vec3 specular = mtl.k_s * pow(cos_phi, mtl.n);
 
             color += light.intensity * (diffuse + specular);
