@@ -7,5 +7,6 @@ In this [project](https://graphics.cs.utah.edu/courses/cs4600/fall2023/?prj=6) w
 
 -----
 
-![A woman on a motorcycle looks over her shoulder](https://cs4600.irlqt.me/project_6/saint.png "Patron Saint of this Repository")
+![A woman on the floor of her room stares despondently](https://cs4600.irlqt.me/project_6/saint.png "Patron Saint of this Repository")
+
 P.S. I Love you
