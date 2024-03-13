@@ -64,8 +64,8 @@ class MeshDrawer
 
         // Pointer to the light direction
         this.light = gl.getUniformLocation(this.prog, 'light');
-        this.light_direction = Array(1,1,1,1);
-        gl.uniform4fv(this.light, this.light_direction);
+        this.light_direction = Array(1,1,1);
+        gl.uniform3fv(this.light, this.light_direction);
         
         // Pointer to the camera
         this.camera = gl.getUniformLocation(this.prog, 'camera');
@@ -167,7 +167,7 @@ class MeshDrawer
 		gl.uniformMatrix3fv(this.mvn, false, matrixNormal);
 
         // Set the light direction
-        gl.uniform4fv(this.light, this.light_direction);
+        gl.uniform3fv(this.light, this.light_direction);
 
         // Set Camera View Vector
         this.camera_v = Array(matrixMV[0], matrixMV[5], matrixMV[10], matrixMV[15]);
@@ -219,7 +219,7 @@ class MeshDrawer
 	// This method is called to set the incoming light direction
 	setLightDir( x, y, z )
 	{
-        this.light_direction = Array(x,y,z,1);
+        this.light_direction = Array(x,y,z);
 	}
 	
 	// This method is called to set the shininess of the material
@@ -240,28 +240,24 @@ class MeshDrawer
         uniform mat3 mvn;
 
         uniform int show_texture;
-        uniform vec4 camera;
 
         attribute vec2 txc;
         attribute vec3 normal;
         attribute vec3 vertex;
 
         varying vec2 textureCoord;
-        varying vec4 new_normal;
-        //varying vec4 new_camera;
-        varying vec4 point;
+        varying vec3 new_normal;
+        varying vec3 point;
 
         void main()
         {
             // flipYZ will be the identity matrix if swapYZ is not set
             // Transform the vertex into model-view-projection space
             gl_Position = mvp * flipYZ * vec4(vertex,1);
-            point = mv * flipYZ * vec4(vertex, 1);
-            //point = point - camera;
-            //new_camera = camera;
 
-            // Transform the normal vector into model-view space
-            new_normal = normalize(vec4(mvn * mat3(flipYZ) * normal, 1));
+            // Transform the normal vector, and vertex location into model-view space
+            new_normal = mvn * mat3(flipYZ) * normal;
+            point = mat3(mv) * mat3(flipYZ) * vertex;
 
             // If we're showing the texture, pass the texture coordinates to the fragment shader
             if(show_texture != 0) { textureCoord = txc; }
@@ -276,14 +272,12 @@ class MeshDrawer
         uniform int show_texture;
         uniform float shininess;
 
-        uniform vec4 light;
         uniform sampler2D texture;
-        //uniform vec4 camera;
 
         varying vec2 textureCoord;
-        varying vec4 new_normal;
-        // varying vec4 new_camera;
-        varying vec4 point;
+        varying vec3 new_normal;
+        uniform vec3 light;
+        varying vec3 point;
 
         void main()
         {
@@ -292,9 +286,9 @@ class MeshDrawer
             vec4 ambient_light_color = vec4(.1,.1,.1,1.0);
 
             // Geometry Component
-            vec4 l = vec4(-light.x, -light.y, -light.z, 1);
-            float cos_theta = dot(new_normal, l);
-            float geometry_term = max(cos_theta, 0.0);
+            vec3 nn = normalize(new_normal);
+            float cos_theta = dot(new_normal, normalize(light + point));
+            float geometry_term = clamp(cos_theta, 0.0, 1.0);
 
             // Diffuse Color Component
             vec4 diffuse_color;
@@ -302,22 +296,21 @@ class MeshDrawer
             if(show_texture != 0) { diffuse_color = texture2D(texture,textureCoord); } 
             // Grab a default color
             else { diffuse_color = vec4(0.5,0.25,0.8,1.0); }
-            vec4 diffuse = geometry_term * diffuse_color;
+            vec4 diffuse = geometry_term * diffuse_color * light_color;
 
             // Ambient Light Component
             vec4 ambient = ambient_light_color * diffuse_color;
 
             // Specular material component
-            vec4 r = 2.0 * dot(l, new_normal) * new_normal - l;
+            vec3 l = light - point;
+            vec3 r = 2.0 * dot(-l, nn) * nn + l;
             r = normalize(r);
-            vec4 view = normalize(-point);
-            vec4 h = (l + view) / length(l + view);
-            float cos_phi = max(dot(r, view), 0.0);
-            cos_phi = max(dot(h, new_normal), 0.0);
-            vec4 spec_val = vec4(1.0,1.0,1.0,1.0);
-            vec4 specular = spec_val * pow(cos_phi, shininess);
+            vec3 view = normalize(-point);
+            float cos_phi = dot(r, view);
+            cos_phi = clamp(cos_phi, 0.0, 1.0);
+            vec4 specular = light_color * pow(cos_phi, shininess);
 
-            gl_FragColor = (light_color * (diffuse + specular)) + ambient;
+            gl_FragColor = specular + diffuse;
         }
     `;
 }
