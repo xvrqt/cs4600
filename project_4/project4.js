@@ -63,7 +63,7 @@ class MeshDrawer
 
         // Initialize if we show the texture
         this.show_texture = gl.getUniformLocation(this.prog, 'show_texture');
-        gl.uniform1i(this.show_texture, 0);
+        gl.uniform1i(this.show_texture, document.getElementById('show-texture').checked ? 1 : 0);
 		
         // Pointer to the vertex attribute
 		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
@@ -185,7 +185,7 @@ class MeshDrawer
         attribute vec2 texture_coordinates;
         attribute vec3 vertex;
 
-        varying vec2 textureCoord;
+        varying vec2 uv_coordinate;
 
         void main()
         {
@@ -198,29 +198,29 @@ class MeshDrawer
             gl_Position = mvp * v;
 
             // If we're displaying a texture then pass the texture coordinates to the fragment shader
-            if(show_texture == 1) { textureCoord = texture_coordinates; }
+            if(show_texture == 1) { uv_coordinate = texture_coordinates; }
         }
     `;
     
     // Fragment Shader GLSL
    fragment_shader = `
-        precision mediump float;
         precision highp int;
+        precision highp float;
 
-        uniform sampler2D texture;
         uniform int show_texture;
+        uniform sampler2D texture;
 
-        varying vec2 textureCoord;
+        varying vec2 uv_coordinate;
 
         void main()
         {
-            if(show_texture != 0) {
-                gl_FragColor = texture2D(texture,textureCoord);
-            } else {
-              float ndcDepth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
-              float clipDepth = ndcDepth / gl_FragCoord.w;
-              float c = (clipDepth * 0.5) + 0.5;
-              gl_FragColor = vec4(c*c*c,0.0,c*c*c,1);
+            if(show_texture == 1) { gl_FragColor = texture2D(texture, uv_coordinate); }
+            else { // Show a color with some depth information to make it more interesting
+              float ndc_depth  = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
+              float clip_depth = ndc_depth / gl_FragCoord.w;
+              float c          = (clip_depth * 0.5) + 0.5;
+
+              gl_FragColor = vec4(c*c*c, 0.0, c*c*c, 1.0);
             }
         }
     `;
