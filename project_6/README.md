@@ -3,6 +3,7 @@ In this [project](https://graphics.cs.utah.edu/courses/cs4600/fall2023/?prj=6) w
 
 # Demo
 [Finished Project](https://cs4600.irlqt.me/project_6/)
+
 ![Project Screenshot](https://cs4600.irlqt.me/project_6/screenshot.jpg "Project 6 Screenshot")
 
 -----
