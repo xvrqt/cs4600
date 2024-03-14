@@ -2,24 +2,86 @@
 // Its job is to advance the simulation for the given time step duration dt.
 // It updates the given positions and velocities.
 var steps = 0;
+var prev_pos = null;
 function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, particleMass, gravity, restitution )
 {
-    //if (steps > 0) { return; }
-    console.log("Gravity: ", gravity);
-    console.log("particleMass: ", particleMass);
+    // if(steps > 2) { return; }
+    // console.log("Gravity: ", gravity);
+    // console.log("particleMass: ", particleMass);
     // Gravity is given as an acceleration vector, so the force is proportional to the mass
     // This initializes our `forces` array with a value we know will always be present
     let g_force = gravity.copy();
     g_force.scale(particleMass);
-
-    // We will calculate forces first
 	let forces = new Array(positions.length).fill(g_force);
-    console.log("Positions: ", positions);
-    console.log("Velocities: ", velocities);
-    console.log("Forces: ", forces);
+
+    // Calculate spring forces on points
+    springs.map((s, i) => {
+        // Get the ends of the spring
+        let p0 = { pos: positions[s.p0].copy(), vel: velocities[s.p0].copy() };
+        let p1 = { pos: positions[s.p1].copy(), vel: velocities[s.p1].copy() };
+
+        // Determine the direction of the spring force 
+        let spring_length = p1.pos.sub(p0.pos);
+        p0.d = spring_length.copy();
+        p0.d.normalize(); // Normalize, because it's scaled by the spring coefficient
+        // This is just the inverse of the other
+        p1.d = p0.d.copy();
+        p1.d.scale(-1.0);
+        spring_length = spring_length.len();
+        //console.log("Spring Length: ", spring_length);
+        // console.log("p0: ", p0);
+        // console.log("p1: ", p1);
+
+        // Calculate the force direction scalar
+        let spring_diff = spring_length - s.rest;
+        let spring_force_scalar = stiffness * spring_diff;
+        
+        // Add spring force
+        p0.force = p0.d.copy();
+        p0.force.scale(spring_force_scalar); 
+        p1.force = p1.d.copy();
+        p1.force.scale(spring_force_scalar); 
+        // console.log("p0.force: ", p0.force);
+        // console.log("p1.force: ", p1.force);
+
+        forces[s.p0] = forces[s.p0].add(p0.force);
+        forces[s.p1] = forces[s.p1].add(p1.force);
+
+        // Calculate the old position of the points, by subtracting their velocities
+        p0.vel.scale(-1.0);
+        p0.old_pos = p0.pos.add(p0.vel);
+        p1.vel.scale(-1.0);
+        p1.old_pos = p1.pos.add(p1.vel);
+
+        // Calculate the previous spring length
+        let old_sl = p1.old_pos.sub(p0.old_pos);
+        old_sl = old_sl.len();
+        // console.log("DAMPING: ", damping);
+        // console.log("Old Spring Lenth: ", old_sl);
+
+        // Calculate how fast the length is changing
+        spring_diff = spring_length - old_sl;
+        // console.log("Spring Diff: ", spring_diff);
+        let spring_rate = spring_diff;
+        // console.log("Spring Rate: ", spring_rate);
+
+        // Calculate the Damping Force
+        let spring_damp_scalar = damping * spring_rate;
+        p0.force = p0.d.copy();
+        p0.force.scale(spring_damp_scalar);
+        p1.force = p1.d.copy();
+        p1.force.scale(spring_damp_scalar);
+
+        forces[s.p0] = forces[s.p0].add(p0.force);
+        forces[s.p1] = forces[s.p1].add(p1.force);
+    });
+    // We will calculate forces first
+    // console.log("Positions: ", positions);
+    // console.log("Velocities: ", velocities);
+    // console.log("Forces: ", forces);
+    // console.log(springs);
 
     // Update velocities
-    console.log(positions);
     velocities.map((v, i) => {
         let force = forces[i].copy();
         // Acceleration = Force / Mass
@@ -42,8 +104,9 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
     steps++;
 	
     // Check if any position is out of bounds, and "bounce" it instead
+    // TODO: Make this more sophisticated, or at least readable lmao
     positions.map((p, i) => {
-        let rbce = 0.8;
+        let rbce = restitution;
         let diff = {x: Math.abs(p.x) - 1, y: Math.abs(p.y) - 1, z: Math.abs(p.z) - 1}; 
         let rb = {x: rbce * diff.x, y: rbce * diff.y, z: rbce * diff.z};
         if (diff.x > 0) { let a = p.x > 0 ? -1 : 1; positions[i].x = (p.x + (a * diff.x) + (a * rb.x)); velocities[i].x *= -rbce; }
@@ -126,7 +189,6 @@ class MeshDrawer
         // Pointer to the shininess value
         this.shininess = gl.getUniformLocation(this.prog, 'shininess');
         this.alpha = document.getElementById('shininess-exp').value;
-        console.log(this.alpha);
         gl.uniform1f(this.shininess, this.alpha);
 
         // Initialize the the flipYZ to the identity matrix
