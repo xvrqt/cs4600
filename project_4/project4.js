@@ -48,7 +48,6 @@ function GetModelViewProjection(projectionMatrix, translationX, translationY, tr
 
 class MeshDrawer
 {
-	// The constructor is a good place for taking care of the necessary initializations.
 	constructor()
 	{
 		// Create & Compile the Shader Program
@@ -58,21 +57,21 @@ class MeshDrawer
 		// Pointer to the viewport perspective transformation matrix
 		this.mvp = gl.getUniformLocation(this.prog, 'mvp');
 
-        // Initialize the the flipYZ to the identity matrix
-        this.flipYZ = gl.getUniformLocation(this.prog, 'flipYZ');
-        gl.uniformMatrix4fv(this.flipYZ, false, Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1));
+        // Initialize if the model should be flip the Y and Z coordinates
+        this.flip_YZ = gl.getUniformLocation(this.prog, 'flip_YZ');
+        gl.uniform1i(this.flipYZ, document.getElementById('swap-yz').checked ? 1 : 0);
 
         // Initialize if we show the texture
         this.show_texture = gl.getUniformLocation(this.prog, 'show_texture');
         gl.uniform1i(this.show_texture, 0);
 		
-		// Get the ids of the vertex attributes in the shaders
+        // Pointer to the vertex attribute
 		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
-        this.vert_buffer = gl.createBuffer();
+        this.vertex_buffer = gl.createBuffer();
 
-        // Pointer to the texture coordinates
-        this.txc = gl.getAttribLocation(this.prog, 'txc');
-        this.tex_buffer = gl.createBuffer();
+        // Pointer to the texture coordinates attribute
+        this.texture_coordinates = gl.getAttribLocation(this.prog, 'texture_coordinates');
+        this.texture_coordinates_buffer = gl.createBuffer();
 	}
 	
 	// This method is called every time the user opens an OBJ file.
@@ -89,19 +88,21 @@ class MeshDrawer
 	{
         gl.useProgram(this.prog);
 
-        // Texture Coords
-        // Should be 2/3'rds as many entries as the vertices
+        // There should be 2/3'rds as many entries as the vertices, otherwise fake it 
+        // (texture won't work, but model will still load)
         let req_length = Math.floor(vertPos.length * 2 / 3);
-        if(texCoords.length != req_length) {
-            texCoords = Array(req_length);
-        }
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
+        if(texCoords.length != req_length) { texCoords = Array(req_length); }
+
+        // Bind the texture coordinates to the buffer inside the program
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texture_coordinates_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
-        // Vertices
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
+        // Bind the vertex positions to the buffer inside the program
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
-		this.numTriangles = vertPos.length / 3;
+
+        // Set the total number of triangles we will draw
+		this.num_triangles = vertPos.length / 3;
 	}
 	
 	// This method is called when the user changes the state of the
@@ -109,19 +110,8 @@ class MeshDrawer
 	// The argument is a boolean that indicates if the checkbox is checked.
 	swapYZ(swap)
 	{
-        /* Swap Y & Z Axes Matrix
-        +-       -+
-        | 1 0 0 0 |
-        | 0 0 1 0 |
-        | 0 1 0 0 |
-        | 0 0 0 1 |
-        +-       -+ */
-        let flipYZ   = Array(1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1);
-        let identity = Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
-        let matrix   = swap ? flipYZ : identity;
-
         gl.useProgram(this.prog);
-		gl.uniformMatrix4fv(this.flipYZ, false, matrix);
+		gl.uniform1i(this.flip_YZ, swap ? 1 : 0);
 	}
 	
 	// This method is called to draw the triangular mesh.
@@ -132,12 +122,12 @@ class MeshDrawer
         gl.useProgram(this.prog);
 
         // Set the texture coordinates array, and attribute pointer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
-        gl.vertexAttribPointer(this.txc, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.txc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texture_coordinates_buffer);
+        gl.vertexAttribPointer(this.texture_coordinates, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.texture_coordinates);
 
         // Set the vertices array, and attribute pointer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex_buffer);
         gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.vertex);
 
@@ -145,7 +135,7 @@ class MeshDrawer
 		gl.uniformMatrix4fv(this.mvp, false, trans);
 
         // The Show
-		gl.drawArrays(gl.TRIANGLES, this.vertex, this.numTriangles);
+		gl.drawArrays(gl.TRIANGLES, 0, this.num_triangles);
 	}
 	
 	// This method is called to set the texture of the mesh.
@@ -153,8 +143,9 @@ class MeshDrawer
 	setTexture(img)
 	{
         // Create the texture
-        const mipmaplvl = 0;
         const texture = gl.createTexture();
+        const mipmaplvl = 0;
+
         gl.useProgram(this.prog);
         gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.texImage2D(gl.TEXTURE_2D, mipmaplvl, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
@@ -180,26 +171,34 @@ class MeshDrawer
 	showTexture(show)
 	{
         gl.useProgram(this.prog);
-        if(show) { gl.uniform1i(this.show_texture, 1); }
+
+        if (show) { gl.uniform1i(this.show_texture, 1); }
         else {gl.uniform1i(this.show_texture, 0); }
 	}
     
     // Vertex Shader GLSL
    vertex_shader = `
-        uniform mat4 mvp;
-        uniform mat4 flipYZ;
+        uniform int flip_YZ;
         uniform int show_texture;
+        uniform mat4 mvp;
 
+        attribute vec2 texture_coordinates;
         attribute vec3 vertex;
-        attribute vec2 txc;
 
         varying vec2 textureCoord;
 
         void main()
         {
-            // flipYZ will be the identity matrix if swapYZ is not set
-            gl_Position = mvp * flipYZ * vec4(vertex,1);
-            if(show_texture != 0) { textureCoord = txc; }
+            // Convert to vec4
+            vec4 v = vec4(vertex, 1.0);
+            // Flip the Y & Z coordinates if necessary
+            if(flip_YZ == 1) { v = vec4(v.x, v.z, v.y, v.w); }
+
+            // Move into the canonical view space
+            gl_Position = mvp * v;
+
+            // If we're displaying a texture then pass the texture coordinates to the fragment shader
+            if(show_texture == 1) { textureCoord = texture_coordinates; }
         }
     `;
     
