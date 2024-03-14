@@ -3,7 +3,7 @@
 // It returns the combined 4x4 transformation matrix as an array in column-major order.
 // The given projection matrix is also a 4x4 matrix stored as an array in column-major order.
 // You can use the MatrixMult function defined in project4.html to multiply two 4x4 matrices in the same format.
-function GetModelViewProjection( projectionMatrix, translationX, translationY, translationZ, rotationX, rotationY )
+function GetModelViewProjection(projectionMatrix, translationX, translationY, translationZ, rotationX, rotationY)
 {
     // Convenience
 	let sin = Math.sin;
@@ -18,9 +18,9 @@ function GetModelViewProjection( projectionMatrix, translationX, translationY, t
 	 * +-                        -+
 	 */  
 	let rx = rotationX;
-	let rotXM= Array(1,0,0,0, 0,cos(rx),sin(rx),0, 0,-sin(rx),cos(rx),0, 0,0,0,1); 
+	let rot_XM = Array(1,0,0,0, 0,cos(rx),sin(rx),0, 0,-sin(rx),cos(rx),0, 0,0,0,1); 
 
-    /* Rotation Around X Axis
+    /* Rotation Around Y Axis
 	 * +-                          -+
      * |  cos(d)    0     sin(d)  0 | 
 	 * |    0       1      0      0 |
@@ -29,20 +29,21 @@ function GetModelViewProjection( projectionMatrix, translationX, translationY, t
 	 * +-                          -+
 	 */  
 	let ry = rotationY;
-	let rotYM = Array(cos(ry),0,-sin(ry),0, 0,1,0,0, sin(ry),0,cos(ry),0, 0,0,0,1);
-    let rotationMatrix = MatrixMult(rotYM, rotXM);
+	let rot_YM = Array(cos(ry),0,-sin(ry),0, 0,1,0,0, sin(ry),0,cos(ry),0, 0,0,0,1);
+    let rotation_matrix = MatrixMult(rot_YM, rot_XM);
 
-	let translationMatrix = [
+	let translation_matrix = [
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		translationX, translationY, translationZ, 1
 	];
+
     // Move after we rotate, so we don't rotate around former origin
-    let transformationMatrix = MatrixMult(translationMatrix, rotationMatrix);
+    let transformation_matrix = MatrixMult(translation_matrix, rotation_matrix);
 
     // Finally, map to perspective of the viewport
-    return MatrixMult(projectionMatrix, transformationMatrix);
+    return MatrixMult(projectionMatrix, transformation_matrix);
 }
 
 class MeshDrawer
@@ -50,10 +51,10 @@ class MeshDrawer
 	// The constructor is a good place for taking care of the necessary initializations.
 	constructor()
 	{
-		// Compile the shader program
+		// Create & Compile the Shader Program
 		this.prog = InitShaderProgram(this.vertex_shader, this.fragment_shader);
         gl.useProgram(this.prog);
-		
+
 		// Pointer to the viewport perspective transformation matrix
 		this.mvp = gl.getUniformLocation(this.prog, 'mvp');
 
