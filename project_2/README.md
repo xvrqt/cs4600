@@ -20,7 +20,8 @@ The returned transformation should first apply trans1 and then trans2. This seco
 
 # Demo
 [Finished Project](https://cs4600.irlqt.me/project_2/)
-![Project Screenshot](https://cs4600.irlqt.me/project_2/screenshot.png "Project 2 Screenshot")
+
+![Project Screenshot](https://cs4600.irlqt.me/project_2/screenshot.jpg "Project 2 Screenshot")
 
 -----
 
