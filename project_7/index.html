@@ -935,24 +935,7 @@ function LoadModel(model) {
     var url = "./" + model + ".obj";
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            mesh.parse( this.responseText );
-            var box = mesh.getBoundingBox();
-            var shift = [
-                -(box.min[0]+box.max[0])/2,
-                -(box.min[1]+box.max[1])/2,
-                -(box.min[2]+box.max[2])/2
-            ];
-            var size = [
-                (box.max[0]-box.min[0])/2,
-                (box.max[1]-box.min[1])/2,
-                (box.max[2]-box.min[2])/2
-            ];
-            var maxSize = Math.max( size[0], size[1], size[2] );
-            var scale = 1/maxSize;
-            mesh.shiftAndScale( shift, scale );
-            var buffers = mesh.getVertexBuffers();
-            meshDrawer.setMesh(buffers.positionBuffer, buffers.texCoordBuffer, buffers.normalBuffer);
-            DrawScene();
+            massSpring.setMesh(this.responseText);
         }
     };
     xhttp.open("GET", url, true);
