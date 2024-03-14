@@ -12,6 +12,16 @@ A huge thank you to Cem Yuksel for the excellent instruction, and for making the
 
 **Project 2:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_2)] [[demo](https://cs4600.irlqt.me/project_2/)]
 
+**Project 3:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_3)] [[demo](https://cs4600.irlqt.me/project_3/)]
+
+**Project 4:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_4)] [[demo](https://cs4600.irlqt.me/project_4/)]
+
+**Project 5:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_5)] [[demo](https://cs4600.irlqt.me/project_5/)]
+
+**Project 6:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_6)] [[demo](https://cs4600.irlqt.me/project_6/)]
+
+**Project 7:** [[source](https://github.com/xvrqt/cs4600/tree/master/project_7)] [[demo](https://cs4600.irlqt.me/project_7/)]
+
 -----
 
 ![A woman is wearied by computer displays](https://cs4600.irlqt.me/saint.jpg "Patron Saint of this Repository")
