@@ -7,6 +7,6 @@ In this [project](https://graphics.cs.utah.edu/courses/cs4600/fall2023/?prj=7) I
 
 -----
 
-![A woman on the floor of her room stares despondently](https://cs4600.irlqt.me/project_7/saint.png "Patron Saint of this Repository")
+![A woman on the floor of her room stares despondently](https://cs4600.irlqt.me/project_7/saint.jpg "Patron Saint of this Repository")
 
 P.S. I Love you
