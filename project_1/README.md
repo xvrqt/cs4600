@@ -16,7 +16,8 @@ This function does not return anything. It just modifies the given background im
 
 # Demo
 [Finished Project](https://cs4600.irlqt.me/project_1)
-![Project Screenshot](https://cs4600.irlqt.me/project_1/screenshot.png "Project 1 Screenshot")
+
+![Project Screenshot](https://cs4600.irlqt.me/project_1/screenshot.jpg "Project 1 Screenshot")
 
 -----
 
