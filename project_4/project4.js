@@ -142,11 +142,12 @@ class MeshDrawer
 	// The argument is an HTML IMG element containing the texture data.
 	setTexture(img)
 	{
+        gl.useProgram(this.prog);
+
         // Create the texture
         const texture = gl.createTexture();
         const mipmaplvl = 0;
 
-        gl.useProgram(this.prog);
         gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.texImage2D(gl.TEXTURE_2D, mipmaplvl, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
         gl.generateMipmap(gl.TEXTURE_2D);
@@ -179,7 +180,7 @@ class MeshDrawer
     // Vertex Shader GLSL
    vertex_shader = `
         uniform int flip_YZ;
-        uniform int show_texture;
+        uniform bool show_texture;
         uniform mat4 mvp;
 
         attribute vec2 texture_coordinates;
@@ -198,7 +199,7 @@ class MeshDrawer
             gl_Position = mvp * v;
 
             // If we're displaying a texture then pass the texture coordinates to the fragment shader
-            if(show_texture == 1) { uv_coordinate = texture_coordinates; }
+            if(show_texture) { uv_coordinate = texture_coordinates; }
         }
     `;
     
@@ -207,21 +208,24 @@ class MeshDrawer
         precision highp int;
         precision highp float;
 
-        uniform int show_texture;
+        uniform bool show_texture;
         uniform sampler2D texture;
 
         varying vec2 uv_coordinate;
 
         void main()
         {
-            if(show_texture == 1) { gl_FragColor = texture2D(texture, uv_coordinate); }
+            vec4 color;
+            if(show_texture) { color = texture2D(texture, uv_coordinate); }
             else { // Show a color with some depth information to make it more interesting
               float ndc_depth  = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);
               float clip_depth = ndc_depth / gl_FragCoord.w;
               float c          = (clip_depth * 0.5) + 0.5;
 
-              gl_FragColor = vec4(c*c*c, 0.0, c*c*c, 1.0);
+              color = vec4(c*c*c, 0.0, c*c*c, 1.0);
             }
+
+            gl_FragColor = color;
         }
     `;
 }
