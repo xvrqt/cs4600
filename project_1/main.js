@@ -21,7 +21,7 @@ function composite(bgImg, fgImg, fgOpac, fgPos) {
     };
     // Calculate bottom-right corner; clip to bgImg bottom right corner coordinates.
     let br = {
-        x: (fgPos.x + fgImg.width) < (bgImg.width) ? (fgPos.x + fgImg.width) : bgImg.width,
+        x: (fgPos.x + fgImg.width)  < (bgImg.width)  ? (fgPos.x + fgImg.width)  : bgImg.width,
         y: (fgPos.y + fgImg.height) < (bgImg.height) ? (fgPos.y + fgImg.height) : bgImg.height
     };
     let rect = { ul, br, width: br.x - ul.x, height: br.y - ul.y };
@@ -46,15 +46,15 @@ function composite(bgImg, fgImg, fgOpac, fgPos) {
             let fgy = (rect.fgos.y + y);
             let fgi = ((fgy * fgImg.width) + fgx) * 4 // Bytes per pixel
 
-            // Grab Color Data; convert to float[0,1] from Uint8 [0,255]
+            // Grab Color Data; normalize to float[0,1] from Uint8 [0,255]
             let fgc = { 
-                r: fgImg.data[fgi] / 255,
+                r: fgImg.data[fgi]     / 255,
                 g: fgImg.data[fgi + 1] / 255,
                 b: fgImg.data[fgi + 2] / 255,
                 a: fgImg.data[fgi + 3] / 255
             };
             let bgc = { 
-                r: bgImg.data[bgi] / 255,
+                r: bgImg.data[bgi]     / 255,
                 g: bgImg.data[bgi + 1] / 255,
                 b: bgImg.data[bgi + 2] / 255,
                 a: bgImg.data[bgi + 3] / 255
@@ -65,7 +65,7 @@ function composite(bgImg, fgImg, fgOpac, fgPos) {
             let alpha = na + (1 - na) * bgc.a; 
 
             // Blend bg & fg and save result to bgImg
-            bgImg.data[bgi] = Math.round((((fgc.r * na) + ((1 - na) * bgc.r * bgc.a)) / alpha) * 255);
+            bgImg.data[bgi]     = Math.round((((fgc.r * na) + ((1 - na) * bgc.r * bgc.a)) / alpha) * 255);
             bgImg.data[bgi + 1] = Math.round((((fgc.g * na) + ((1 - na) * bgc.g * bgc.a)) / alpha) * 255);
             bgImg.data[bgi + 2] = Math.round((((fgc.b * na) + ((1 - na) * bgc.b * bgc.a)) / alpha) * 255);
             bgImg.data[bgi + 3] = Math.round(alpha * 255);
