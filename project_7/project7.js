@@ -398,7 +398,7 @@ class MeshDrawer
         {
             // Light color + intensity
             vec4 light_color = vec4(1,1,1,1);
-            vec4 ambient_light_color = vec4(.1,.1,.1,1.0);
+            vec4 ambient_light_color = vec4(.15,.15,.15,1.0);
 
             // Geometry Component
             vec3 nn = normalize(new_normal);
@@ -425,7 +425,7 @@ class MeshDrawer
             cos_phi = clamp(cos_phi, 0.0, 1.0);
             vec4 specular = light_color * pow(cos_phi, shininess);
 
-            gl_FragColor = specular + diffuse;
+            gl_FragColor = specular + diffuse + ambient;
         }
     `;
 }
