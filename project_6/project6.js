@@ -36,35 +36,74 @@ uniform int bounceLimit;
 bool IntersectRay( inout HitInfo hit, Ray ray );
 
 // Shades the given point and returns the computed color.
-vec3 Shade( Material mtl, vec3 position, vec3 normal, vec3 view )
+vec3 Shade(Material mtl, vec3 position, vec3 normal, vec3 view)
 {
+    // Final output color is black if we're in complete shadow
     vec3 color = vec3(0.0,0.0,0.0);
-	for ( int i=0; i<NUM_LIGHTS; ++i ) {
-        Light light = lights[i];
-        bool shadowed = false;
 
+    // For every direct light source, see if it contributes to our color
+	for (int i = 0; i < NUM_LIGHTS; ++i) {
+        // Get our 
+        Light light = lights[i];
+
+        // Cast a Shadow Ray to see if we're in shadow
         HitInfo hit;
         Ray shadow_ray;
         shadow_ray.pos = position;
         shadow_ray.dir = light.position - position;
 
-        if(IntersectRay(hit, shadow_ray)) { shadowed = true; }
-
-        if(!shadowed)
+        if(IntersectRay(hit, shadow_ray)) { continue; } // Go Next
+        else // Compute the color based off the light and BDRF
         {
+            // // Light color / intensity
+            // vec4 light_color = vec4(1.0, 1.0, 1.0, 1.0);
+            // vec4 ambient_light_color = vec4(0.1, 0.1, 0.1, 1.0);
+            //
+            // // Geometry Component
+            // float cos_theta = dot(new_normal, light);
+            // float geometry_term = clamp(cos_theta, 0.0, 1.0);
+            //
+            // // Diffuse Color Component
+            // vec4 kd;
+            // // If the teture is enabled, grab color from texture, else use purple
+            // if(show_texture) { kd = texture2D(texture,textureCoord); } 
+            // else { kd = vec4(0.5, 0.25, 0.8, 1.0); }
+            // vec4 diffuse = kd * geometry_term;
+            //
+            // // Specular Color Component
+            // vec3 reflection = 2.0 * dot(normalize(new_normal), light) * new_normal - light;
+            // reflection = normalize(reflection);
+            // vec3 view  = normalize(vec3(-point));
+            //
+            // // Angle between view direction and light reflection
+            // float cos_phi = dot(reflection, view);
+            // cos_phi = clamp(cos_phi, 0.0, 1.0);
+            // vec4 ks = light_color;
+            // vec4 specular = ks * pow(cos_phi, shininess);
+            //
+            // // Ambient Light Component
+            // vec4 ambient = kd * ambient_light_color;
+            //
+            // // The Show
+            // gl_FragColor = light_color * (diffuse + specular) + ambient;
+
+            // ---------------------
+
+            // Vector to the light, from the intersection position
+            vec3 to_light = normalize(light.position - position);
+
             // Geometry Component
-            float cos_theta = dot(normalize(light.position), normal);
+            float cos_theta = dot(to_light, normalize(normal));
             float geometry_term = max(cos_theta, 0.0);
 
             // Diffuse Color Component
-            vec3 diffuse = geometry_term * mtl.k_d;
+            vec3 diffuse = mtl.k_d * geometry_term;
 
             // Specular material component
-            vec3 r = 2.0 * dot(light.position, normal) * normal - light.position;
-            r = normalize(r);
-            vec3 h = (light.position + view) / length(light.position + view);
-            float cos_phi = max(dot(view, r), 0.0);
-            cos_phi = max(dot(h, normal), 0.0);
+            vec3 reflection = 2.0 * dot(to_light, normalize(normal)) * normal - to_light;
+            reflection = normalize(reflection);
+            vec3 half_angle = normalize(to_light + view); 
+            float cos_phi = clamp(dot(half_angle, normal), 0.0, 1.0);
             vec3 specular = mtl.k_s * pow(cos_phi, mtl.n);
 
             color += light.intensity * (diffuse + specular);
