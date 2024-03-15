@@ -120,7 +120,7 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
 // The two rotations are applied around x and y axes.
 // It returns the combined 4x4 transformation matrix as an array in column-major order.
 // You can use the MatrixMult function defined in project5.html to multiply two 4x4 matrices in the same format.
-function GetModelViewMatrix( translationX, translationY, translationZ, rotationX, rotationY )
+function GetModelViewMatrix(translationX, translationY, translationZ, rotationX, rotationY)
 {
     // Convenience
 	let sin = Math.sin;
@@ -135,7 +135,7 @@ function GetModelViewMatrix( translationX, translationY, translationZ, rotationX
 	 * +-                        -+
 	 */  
 	let rx = rotationX;
-	let rotXM= Array(1,0,0,0, 0,cos(rx),sin(rx),0, 0,-sin(rx),cos(rx),0, 0,0,0,1); 
+	let rot_XM= Array(1,0,0,0, 0,cos(rx),sin(rx),0, 0,-sin(rx),cos(rx),0, 0,0,0,1); 
 
     /* Rotation Around X Axis
 	 * +-                          -+
@@ -146,10 +146,10 @@ function GetModelViewMatrix( translationX, translationY, translationZ, rotationX
 	 * +-                          -+
 	 */  
 	let ry = rotationY;
-	let rotYM = Array(cos(ry),0,-sin(ry),0, 0,1,0,0, sin(ry),0,cos(ry),0, 0,0,0,1);
-    let rotationMatrix = MatrixMult(rotYM, rotXM);
+	let rot_YM = Array(cos(ry),0,-sin(ry),0, 0,1,0,0, sin(ry),0,cos(ry),0, 0,0,0,1);
+    let rotation_matrix = MatrixMult(rot_YM, rot_XM);
 
-	let translationMatrix = [
+	let translation_matrix = [
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
@@ -157,16 +157,13 @@ function GetModelViewMatrix( translationX, translationY, translationZ, rotationX
 	];
 
     // Move after we rotate, so we don't rotate around former origin
-    return MatrixMult(translationMatrix, rotationMatrix);
+    return MatrixMult(translation_matrix, rotation_matrix);
 }
-
 
 class MeshDrawer
 {
-	// The constructor is a good place for taking care of the necessary initializations.
 	constructor()
 	{
-
 		// Compile the shader program
 		this.prog = InitShaderProgram(this.vertex_shader, this.fragment_shader);
         gl.useProgram(this.prog);
@@ -175,26 +172,18 @@ class MeshDrawer
         this.mv = gl.getUniformLocation(this.prog, 'mv');
 		// Pointer to the viewport perspective transformation matrix
 		this.mvp = gl.getUniformLocation(this.prog, 'mvp');
-        // Pointer to the normal matrix (inverse transpose of 'mv')
+        // Pointer to the normal matrix (inverse transpose of 'mv', the 3x3)
         this.mvn = gl.getUniformLocation(this.prog, 'mvn');
 
-        // Pointer to the light direction
+        // Pointer to the light direction, set default light direction
         this.light = gl.getUniformLocation(this.prog, 'light');
         this.light_direction = Array(1,1,1);
         gl.uniform3fv(this.light, this.light_direction);
         
-        // Pointer to the camera
-        this.camera = gl.getUniformLocation(this.prog, 'camera');
-
         // Pointer to the shininess value
         this.shininess = gl.getUniformLocation(this.prog, 'shininess');
         this.alpha = document.getElementById('shininess-exp').value;
         gl.uniform1f(this.shininess, this.alpha);
-
-        // Initialize the the flipYZ to the identity matrix
-        this.flipYZ = gl.getUniformLocation(this.prog, 'flipYZ');
-        let flipYZ_transform = this.identity_matrix; 
-        gl.uniformMatrix4fv(this.flipYZ, false, flipYZ_transform);
 
         // Initialize if we show the texture
         this.show_texture = gl.getUniformLocation(this.prog, 'show_texture');
@@ -203,11 +192,11 @@ class MeshDrawer
 
 		// Get the ids of the vertex attributes in the shaders
 		this.vertex = gl.getAttribLocation(this.prog, 'vertex');
-        this.vert_buffer = gl.createBuffer();
+        this.vertex_buffer = gl.createBuffer();
 
         // Pointer to the texture coordinates
-        this.txc = gl.getAttribLocation(this.prog, 'txc');
-        this.tex_buffer = gl.createBuffer();
+        this.texture_coordinates = gl.getAttribLocation(this.prog, 'texture_coordinates');
+        this.texture_coordinates_buffer = gl.createBuffer();
 
         // Pointer to the normals
         this.normal = gl.getAttribLocation(this.prog, 'normal');
@@ -225,11 +214,12 @@ class MeshDrawer
 	// form the texture coordinate of a vertex and every three consecutive 
 	// elements in the normals array form a vertex normal.
 	// Note that this method can be called multiple times.
-	setMesh( vertPos, texCoords, normals )
+	setMesh(vertPos, texCoords, normals)
 	{
-        // Texture
         gl.useProgram(this.prog);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
+
+        // Texture
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texture_coordinates_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
         // Normals
@@ -237,19 +227,11 @@ class MeshDrawer
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 
         // Vertices
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex_buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
+
+        // Set the total number of triangles we will draw
 		this.numTriangles = vertPos.length / 3;
-	}
-	
-	// This method is called when the user changes the state of the
-	// "Swap Y-Z Axes" checkbox. 
-	// The argument is a boolean that indicates if the checkbox is checked.
-	swapYZ( swap )
-	{
-        gl.useProgram(this.prog);
-        let matrix = swap ? this.yz_flip_matrix : this.identity_matrix;
-		gl.uniformMatrix4fv(this.flipYZ, false, matrix);
 	}
 	
 	// This method is called to draw the triangular mesh.
@@ -257,14 +239,14 @@ class MeshDrawer
 	// the model-view transformation matrixMV, the same matrix returned
 	// by the GetModelViewProjection function above, and the normal
 	// transformation matrix, which is the inverse-transpose of matrixMV.
-	draw( matrixMVP, matrixMV, matrixNormal )
+	draw(matrixMVP, matrixMV, matrixNormal) 
 	{
         gl.useProgram(this.prog);
 
         // Set the texture coordinates array, and attribute pointer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buffer);
-        gl.vertexAttribPointer(this.txc, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.txc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texture_coordinates_buffer);
+        gl.vertexAttribPointer(this.texture_coordinates, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.texture_coordinates);
 
         // Set the vertices array, and attribute pointer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.normal_buffer);
@@ -272,12 +254,12 @@ class MeshDrawer
         gl.enableVertexAttribArray(this.normal);
 
         // Set the vertices array, and attribute pointer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vert_buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex_buffer);
         gl.vertexAttribPointer(this.vertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.vertex);
 
         // Set the perspective, and view-model matrices as uniform variables
-		gl.uniformMatrix4fv(this.mv, false, matrixMV);
+		gl.uniformMatrix4fv(this.mv,  false, matrixMV);
 		gl.uniformMatrix4fv(this.mvp, false, matrixMVP);
 		gl.uniformMatrix3fv(this.mvn, false, matrixNormal);
 
@@ -297,12 +279,14 @@ class MeshDrawer
 	
 	// This method is called to set the texture of the mesh.
 	// The argument is an HTML IMG element containing the texture data.
-	setTexture( img )
+	setTexture(img)
 	{
-        // Create the texture
-        const mipmaplvl = 0;
-        const texture = gl.createTexture();
         gl.useProgram(this.prog);
+
+        // Create the texture
+        const texture = gl.createTexture();
+        const mipmaplvl = 0;
+
         gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.texImage2D(gl.TEXTURE_2D, mipmaplvl, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
         gl.generateMipmap(gl.TEXTURE_2D);
@@ -313,69 +297,58 @@ class MeshDrawer
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
-        // Bind Texture to the the 0th Texture Unit
+        // Activate the 0th Texture Unit and Bind our texture to it
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        let sampler = gl.getUniformLocation(this.prog, 'texture');
-        gl.uniform1i(sampler, 0);
+        gl.uniform1i(gl.getUniformLocation(this.prog, 'texture'), 0);
 	}
 	
 	// This method is called when the user changes the state of the
 	// "Show Texture" checkbox. 
 	// The argument is a boolean that indicates if the checkbox is checked.
-	showTexture( show )
+	showTexture(show)
 	{
         gl.useProgram(this.prog);
+
         if (show) { gl.uniform1i(this.show_texture, 1); }
-        else {gl.uniform1i(this.show_texture, 0); }
+        else { gl.uniform1i(this.show_texture, 0); }
 	}
 	
 	// This method is called to set the incoming light direction
-	setLightDir( x, y, z )
-	{
-        this.light_direction = Array(x,y,z);
-	}
+    // This is the omega term, it points *at* the light 
+    // This is *ambiguous* in the project notes, and was very confusing!
+	setLightDir(x, y, z) { this.light_direction = Array(x,y,z); }
 	
 	// This method is called to set the shininess of the material
-	setShininess( shininess )
-	{
-        this.alpha = shininess;
-	}
-
-    // Convenience
-    identity_matrix = Array(1,0,0,0,  0,1,0,0,  0,0,1,0,  0,0,0,1);
-    yz_flip_matrix  = Array(1,0,0,0,  0,0,1,0,  0,1,0,0,  0,0,0,1);
+	setShininess(shininess) { this.alpha = shininess; }
 
     // Vertex Shader GLSL
    vertex_shader = `
         uniform mat4 mv;
         uniform mat4 mvp;
-        uniform mat4 flipYZ;
         uniform mat3 mvn;
 
-        uniform int show_texture;
+        uniform bool show_texture;
 
-        attribute vec2 txc;
+        attribute vec2 texture_coordinates;
         attribute vec3 normal;
         attribute vec3 vertex;
 
         varying vec2 textureCoord;
         varying vec3 new_normal;
-        varying vec3 point;
+        varying vec4 point;
 
         void main()
         {
-            // flipYZ will be the identity matrix if swapYZ is not set
-            // Transform the vertex into model-view-projection space
-            gl_Position = mvp * flipYZ * vec4(vertex,1);
+            vec4 v = vec4(vertex, 1);
+
+            gl_Position = mvp * v;
 
             // Transform the normal vector, and vertex location into model-view space
-            new_normal = mvn * mat3(flipYZ) * normal;
-            point = mat3(mv) * mat3(flipYZ) * vertex;
+            new_normal = mvn * normal;
+            point      = mv  * v;
 
             // If we're showing the texture, pass the texture coordinates to the fragment shader
-            if(show_texture != 0) { textureCoord = txc; }
+            if(show_texture) { textureCoord = texture_coordinates; }
         }
     `;
     
@@ -384,49 +357,49 @@ class MeshDrawer
         precision highp int;
         precision mediump float;
 
-        uniform int show_texture;
+        uniform bool show_texture;
         uniform float shininess;
+        uniform vec3 light; // Normalized (omega term; points at light)
 
         uniform sampler2D texture;
 
         varying vec2 textureCoord;
         varying vec3 new_normal;
-        uniform vec3 light;
-        varying vec3 point;
+        varying vec4 point;
 
         void main()
         {
-            // Light color + intensity
-            vec4 light_color = vec4(1,1,1,1);
-            vec4 ambient_light_color = vec4(.15,.15,.15,1.0);
+            // Light color / intensity
+            vec4 light_color = vec4(1.0, 1.0, 1.0, 1.0);
+            vec4 ambient_light_color = vec4(0.1, 0.1, 0.1, 1.0);
 
             // Geometry Component
-            vec3 nn = normalize(new_normal);
-            float cos_theta = dot(new_normal, normalize(light + point));
+            float cos_theta = dot(new_normal, light);
             float geometry_term = clamp(cos_theta, 0.0, 1.0);
 
             // Diffuse Color Component
-            vec4 diffuse_color;
-            // If the teture is enabled, grab our base color from the texture
-            if(show_texture != 0) { diffuse_color = texture2D(texture,textureCoord); } 
-            // Grab a default color
-            else { diffuse_color = vec4(0.5,0.25,0.8,1.0); }
-            vec4 diffuse = geometry_term * diffuse_color * light_color;
+            vec4 kd;
+            // If the teture is enabled, grab color from texture, else use purple
+            if(show_texture) { kd = texture2D(texture,textureCoord); } 
+            else { kd = vec4(0.5, 0.25, 0.8, 1.0); }
+            vec4 diffuse = kd * geometry_term;
+
+            // Specular Color Component
+            vec3 reflection = 2.0 * dot(normalize(new_normal), light) * new_normal - light;
+            reflection = normalize(reflection);
+            vec3 view  = normalize(vec3(-point));
+
+            // Angle between view direction and light reflection
+            float cos_phi = dot(reflection, view);
+            cos_phi = clamp(cos_phi, 0.0, 1.0);
+            vec4 ks = light_color;
+            vec4 specular = ks * pow(cos_phi, shininess);
 
             // Ambient Light Component
-            vec4 ambient = ambient_light_color * diffuse_color;
+            vec4 ambient = kd * ambient_light_color;
 
-            // Specular material component
-            vec3 l = light - point;
-            vec3 r = 2.0 * dot(-l, nn) * nn + l;
-            r = normalize(r);
-            vec3 view = normalize(-point);
-            float cos_phi = dot(r, view);
-            cos_phi = clamp(cos_phi, 0.0, 1.0);
-            vec4 specular = light_color * pow(cos_phi, shininess);
-
-            gl_FragColor = specular + diffuse + ambient;
+            // The Show
+            gl_FragColor = light_color * (diffuse + specular) + ambient;
         }
     `;
 }
-
