@@ -5,9 +5,9 @@ var steps = 0;
 var prev_pos = null;
 function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, particleMass, gravity, restitution )
 {
-    // if(steps > 2) { return; }
-    // console.log("Gravity: ", gravity);
-    // console.log("particleMass: ", particleMass);
+    // You're gonna see what looks like a lot of unnecessary copying and lines; the functions do not return a builder
+    // pattern (i.e. 'this') so I have to do it that way using the API I was given.
+    //
     // Gravity is given as an acceleration vector, so the force is proportional to the mass
     // This initializes our `forces` array with a value we know will always be present
     let g_force = gravity.copy();
@@ -16,7 +16,7 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
 
     // Calculate spring forces on points
     springs.map((s, i) => {
-        // Get the ends of the spring
+        // Get the ends of the spring, and their velocities
         let p0 = { pos: positions[s.p0].copy(), vel: velocities[s.p0].copy() };
         let p1 = { pos: positions[s.p1].copy(), vel: velocities[s.p1].copy() };
 
@@ -24,46 +24,36 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         let spring_length = p1.pos.sub(p0.pos);
         p0.d = spring_length.copy();
         p0.d.normalize(); // Normalize, because it's scaled by the spring coefficient
-        // This is just the inverse of the other
+        // This is just the inverse of what we calculated above
         p1.d = p0.d.copy();
         p1.d.scale(-1.0);
+        // Finally get a scalar length vaule
         spring_length = spring_length.len();
-        //console.log("Spring Length: ", spring_length);
-        // console.log("p0: ", p0);
-        // console.log("p1: ", p1);
 
         // Calculate the force direction scalar
         let spring_diff = spring_length - s.rest;
         let spring_force_scalar = stiffness * spring_diff;
         
-        // Add spring force
+        // Add spring force to the vertices force vector
         p0.force = p0.d.copy();
         p0.force.scale(spring_force_scalar); 
         p1.force = p1.d.copy();
         p1.force.scale(spring_force_scalar); 
-        // console.log("p0.force: ", p0.force);
-        // console.log("p1.force: ", p1.force);
 
         forces[s.p0] = forces[s.p0].add(p0.force);
         forces[s.p1] = forces[s.p1].add(p1.force);
 
-        // Calculate the old position of the points, by subtracting their velocities
-        p0.vel.scale(-1.0);
-        p0.old_pos = p0.pos.add(p0.vel);
-        p1.vel.scale(-1.0);
-        p1.old_pos = p1.pos.add(p1.vel);
+        // Approximate the previous position of the points, by subtracting their velocities
+        p0.old_pos = p0.pos.sub(p0.vel); 
+        p1.old_pos = p1.pos.sub(p1.vel); 
 
         // Calculate the previous spring length
         let old_sl = p1.old_pos.sub(p0.old_pos);
         old_sl = old_sl.len();
-        // console.log("DAMPING: ", damping);
-        // console.log("Old Spring Lenth: ", old_sl);
 
         // Calculate how fast the length is changing
         spring_diff = spring_length - old_sl;
-        // console.log("Spring Diff: ", spring_diff);
         let spring_rate = spring_diff;
-        // console.log("Spring Rate: ", spring_rate);
 
         // Calculate the Damping Force
         let spring_damp_scalar = damping * spring_rate;
@@ -75,11 +65,6 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         forces[s.p0] = forces[s.p0].add(p0.force);
         forces[s.p1] = forces[s.p1].add(p1.force);
     });
-    // We will calculate forces first
-    // console.log("Positions: ", positions);
-    // console.log("Velocities: ", velocities);
-    // console.log("Forces: ", forces);
-    // console.log(springs);
 
     // Update velocities
     velocities.map((v, i) => {
@@ -101,10 +86,8 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         p = p.add(v);
         positions[i] = p;
     });
-    steps++;
 	
     // Check if any position is out of bounds, and "bounce" it instead
-    // TODO: Make this more sophisticated, or at least readable lmao
     positions.map((p, i) => {
         let rbce = restitution;
         let diff = {x: Math.abs(p.x) - 1, y: Math.abs(p.y) - 1, z: Math.abs(p.z) - 1}; 
