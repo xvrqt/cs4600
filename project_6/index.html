@@ -295,7 +295,8 @@ var fixed_spheres = [
 		center: [ 0, 0, -10001.0 ],
 		radius: 10000.0,
 		mtl: {
-			k_d: [ 0.1, 0.1, 0.2 ],
+			<!-- k_d: [ 0.1, 0.1, 0.2 ], -->
+			k_d: [ .35, .15, .45 ],
 			k_s: [ 0.2, 0.2, 0.2 ],
 			n: 10
 		}
@@ -313,10 +314,24 @@ var fixed_spheres = [
 
 var spheres = fixed_spheres.slice();
 
+var t_term = Math.sqrt(3) / 4.0;
+var t_length = 1000;
 var lights = [
 	{
-		position:  [ 1000, 0, 1000 ],
-		intensity: [ 1, 1, 1 ]
+		position:  [ 0, 0, 1000 ],
+		intensity: [ .5, .5, .5 ]
+	},
+	{
+		position:  [ 0, t_length * t_term, 1000 ],
+		intensity: [ 0, 0, 1 ]
+	},
+	{
+		position:  [ -t_length / 2, -t_length * t_term, 1000 ],
+		intensity: [ 0, 1, 0 ]
+	},
+	{
+		position:  [ t_length / 2, -t_length * t_term, 1000 ],
+		intensity: [ 1, 0, 0 ]
 	}
 ];
 

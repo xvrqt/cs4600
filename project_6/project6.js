@@ -55,40 +55,6 @@ vec3 Shade(Material mtl, vec3 position, vec3 normal, vec3 view)
         if(IntersectRay(hit, shadow_ray)) { continue; } // Go Next
         else // Compute the color based off the light and BDRF
         {
-            // // Light color / intensity
-            // vec4 light_color = vec4(1.0, 1.0, 1.0, 1.0);
-            // vec4 ambient_light_color = vec4(0.1, 0.1, 0.1, 1.0);
-            //
-            // // Geometry Component
-            // float cos_theta = dot(new_normal, light);
-            // float geometry_term = clamp(cos_theta, 0.0, 1.0);
-            //
-            // // Diffuse Color Component
-            // vec4 kd;
-            // // If the teture is enabled, grab color from texture, else use purple
-            // if(show_texture) { kd = texture2D(texture,textureCoord); } 
-            // else { kd = vec4(0.5, 0.25, 0.8, 1.0); }
-            // vec4 diffuse = kd * geometry_term;
-            //
-            // // Specular Color Component
-            // vec3 reflection = 2.0 * dot(normalize(new_normal), light) * new_normal - light;
-            // reflection = normalize(reflection);
-            // vec3 view  = normalize(vec3(-point));
-            //
-            // // Angle between view direction and light reflection
-            // float cos_phi = dot(reflection, view);
-            // cos_phi = clamp(cos_phi, 0.0, 1.0);
-            // vec4 ks = light_color;
-            // vec4 specular = ks * pow(cos_phi, shininess);
-            //
-            // // Ambient Light Component
-            // vec4 ambient = kd * ambient_light_color;
-            //
-            // // The Show
-            // gl_FragColor = light_color * (diffuse + specular) + ambient;
-
-            // ---------------------
-
             // Vector to the light, from the intersection position
             vec3 to_light = normalize(light.position - position);
 
@@ -116,32 +82,41 @@ vec3 Shade(Material mtl, vec3 position, vec3 normal, vec3 view)
 // and updates the given HitInfo using the information of the sphere
 // that first intersects with the ray.
 // Returns true if an intersection is found.
-bool IntersectRay( inout HitInfo hit, Ray ray )
+bool IntersectRay(inout HitInfo hit, Ray ray)
 {
-	hit.t = 1e30;
+	hit.t = 1e30; // Gauranteed first comparison will be smaller
 	bool foundHit = false;
-	for ( int i=0; i<NUM_SPHERES; ++i ) {
+
+    // Check every sphere to see find the nearest intersection (if any)
+	for(int i = 0; i < NUM_SPHERES; ++i) {
         Sphere sphere = spheres[i];
         vec3 d = normalize(ray.dir);
         vec3 p = ray.pos;
         vec3 center = sphere.center;
+
+        // Calculate terms
         float r = sphere.radius;
         float a = dot(d,d);
         float b = dot((2.0 * d), (p - center));
         float c = dot((p - center), (p - center)) - pow(r, 2.0);
+        // Calculate implicit intersection
         float delta = b*b - 4.0 * a * c;
+
         // If delta is < 0.0 there is no intersection
         if(delta >= 0.0) {
            delta = sqrt(delta);
-           // Always smaller, a is length of d so positive; delta is positive
+           // Always smaller, a is the length of vec d so if positive; delta is positive
            float t = (-b - delta) / (2.0 * a);
+
            // If closer, update the HitInfo
-           if (t < hit.t && t > 0.0001) {
+           if (t < hit.t && t > 0.0001) { // Add a little bit of tolerance since we're using floats
              hit.t = t;
              hit.position = p + t * d;
+
              // Ensure the normal vector is a unit vector
              hit.normal = (hit.position - center) / r;
              hit.mtl = sphere.mtl;
+
              foundHit = true;
            }
         };
@@ -151,50 +126,57 @@ bool IntersectRay( inout HitInfo hit, Ray ray )
 
 // Given a ray, returns the shaded color where the ray intersects a sphere.
 // If the ray does not hit a sphere, returns the environment color.
-vec4 RayTracer( Ray ray )
+vec4 RayTracer(Ray ray)
 {
 	HitInfo hit;
-	if ( IntersectRay( hit, ray ) ) {
-		vec3 view = normalize( -ray.dir );
+	if(IntersectRay(hit, ray)) {
+        // Flip the ray we just cast to get the perspective view vec
+		vec3 view = normalize(-ray.dir);
         // Diffuse Color of the Sphere
-		vec3 clr = Shade( hit.mtl, hit.position, hit.normal, view );
+		vec3 clr = Shade(hit.mtl, hit.position, hit.normal, view);
 		
 		// Compute reflections
-		vec3 k_s = hit.mtl.k_s; // Final specular color
+		vec3 k_s = hit.mtl.k_s; // Initial specular reflection value 
 
         // Loop variables
-        Ray r;	// this is the reflection ray
-        r.pos = hit.position;
-        r.dir = 2.0 * dot(view, hit.normal) * hit.normal - view;
-        r.dir = normalize(r.dir);
-        HitInfo h;	// reflection hit info
+        Ray reflection_ray;	
+        reflection_ray.pos = hit.position; // Starts where the previous ray intersected
+        reflection_ray.dir = 2.0 * dot(view, normalize(hit.normal)) * hit.normal - view;
+        reflection_ray.dir = normalize(reflection_ray.dir);
 
-		for ( int bounce=0; bounce<MAX_BOUNCES; ++bounce ) {
-			if ( bounce >= bounceLimit ) break;
-			if ( hit.mtl.k_s.r + hit.mtl.k_s.g + hit.mtl.k_s.b <= 0.0 ) break;
+        HitInfo reflection_hit;
+
+		for(int bounce = 0; bounce < MAX_BOUNCES; ++bounce) {
+            // Stop bouncing at limit, or if we hit nothing
+			if (bounce >= bounceLimit) break;
+			if (hit.mtl.k_s.r + hit.mtl.k_s.g + hit.mtl.k_s.b <= 0.0) break;
 			
-			if ( IntersectRay( h, r ) ) {
+			if(IntersectRay(reflection_hit, reflection_ray)) {
                 // Shade the point (specular)
-                vec3 v = (-r.dir);
-                vec3 c = Shade(h.mtl, h.position, h.normal, v);
+                vec3 reflection_view = (-reflection_ray.dir);
+                // Color of the new object we hit
+                vec3 c = Shade(reflection_hit.mtl, reflection_hit.position, reflection_hit.normal, reflection_view);
+
+                // Update by the color of the new object, times the specular reflection of the 'emitting' object
                 clr += k_s * c;
-                k_s = h.mtl.k_s;
+                // Update the specular component term to the new object's
+                k_s = reflection_hit.mtl.k_s;
 
                 // Update Loop variables
-                r.pos = h.position;
-                r.dir = 2.0 * dot(v,h.normal) * h.normal - v;
-                r.dir = normalize(r.dir);
+                reflection_ray.pos = reflection_hit.position;
+                reflection_ray.dir = 2.0 * dot(reflection_view, reflection_hit.normal) * reflection_hit.normal - reflection_view;
+                reflection_ray.dir = normalize(reflection_ray.dir);
                 
 			} else {
 				// The refleciton ray did not intersect with anything,
 				// so we are using the environment color
-				clr += k_s * textureCube( envMap, r.dir.xzy ).rgb;
+				clr += k_s * textureCube(envMap, reflection_ray.dir.xzy).rgb;
 				break;	// no more reflections
 			}
 		}
-		return vec4( clr, 1 );	// return the accumulated color, including the reflections
+		return vec4(clr, 1);	// return the accumulated color, including the reflections
 	} else {
-		return vec4( textureCube( envMap, ray.dir.xzy ).rgb, 0 );	// return the environment color
+		return vec4(textureCube(envMap, ray.dir.xzy).rgb, 0);	// return the environment color
 	}
 }
 `;
