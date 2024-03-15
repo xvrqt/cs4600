@@ -33,7 +33,7 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         // Calculate the force direction scalar
         let spring_diff = spring_length - s.rest;
         let spring_force_scalar = stiffness * spring_diff;
-        
+
         // Add spring force to the vertices force vector
         p0.force = p0.d.copy();
         p0.force.scale(spring_force_scalar); 
@@ -43,17 +43,12 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         forces[s.p0] = forces[s.p0].add(p0.force);
         forces[s.p1] = forces[s.p1].add(p1.force);
 
-        // Approximate the previous position of the points, by subtracting their velocities
-        p0.old_pos = p0.pos.sub(p0.vel); 
-        p1.old_pos = p1.pos.sub(p1.vel); 
-
-        // Calculate the previous spring length
-        let old_sl = p1.old_pos.sub(p0.old_pos);
-        old_sl = old_sl.len();
-
-        // Calculate how fast the length is changing
-        spring_diff = spring_length - old_sl;
-        let spring_rate = spring_diff;
+        // Approximate the previous of the points, by subtracting their velocities
+        let prev_p0 = p0.pos.sub(p0.vel);
+        let prev_p1 = p1.pos.sub(p1.vel);
+        let prev_spring_length = prev_p0.sub(prev_p1); 
+        prev_spring_length = prev_spring_length.len();
+        let spring_rate = spring_length - prev_spring_length;
 
         // Calculate the Damping Force
         let spring_damp_scalar = damping * spring_rate;
@@ -86,7 +81,7 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         p = p.add(v);
         positions[i] = p;
     });
-	
+
     // Check if any position is out of bounds, and "bounce" it instead
     positions.map((p, i) => {
         let rbce = restitution;
@@ -96,7 +91,7 @@ function SimTimeStep( dt, positions, velocities, springs, stiffness, damping, pa
         if (diff.y > 0) { let a = p.y > 0 ? -1 : 1; positions[i].y = (p.y + (a * diff.y) + (a * rb.y)); velocities[i].y *= -rbce; }
         if (diff.z > 0) { let a = p.z > 0 ? -1 : 1; positions[i].z = (p.z + (a * diff.z) + (a * rb.z)); velocities[i].z *= -rbce; }
     });
-	
+
 }
 
 // This function takes the translation and two rotation angles (in radians) as input arguments.
