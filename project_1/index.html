@@ -379,15 +379,52 @@ html {
 	background-color: white;
 	color: black;
 }
+#noscript {
+	margin: 10% auto 0 auto;
+	width: 50%;
+	min-width: 128px;
+	font-size: 1.5em;
+	font-family: monospace;
+	text-align: center;
+
+	animation: noscriptimg;
+	animation-duration: 4s;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
+}
+
+@keyframes noscriptimg {
+	0%   { transform: rotate3d(.9, .9, .1,  0deg); }
+	25%  { transform: rotate3d(.9, .9, .1,  5deg); }
+	50%  { transform: rotate3d(.9, .9, .1,  0deg); }
+	75%  { transform: rotate3d(.9, .9, .1, -5deg); }
+	100% { transform: rotate3d(.9, .9, .1,  0deg); }
+}
+
+#noscript img {
+	margin: auto;
+	max-width: 512px;
+	border-radius: 10px;
+}
 </style>
+<noscript>
+	<style type="text/css">#page_container {display:none;}</style>
+	<div id="noscript">
+		<img src="/imgs/noscript.png" />
+		<br />
+		This is a WebGL Demo. You need JS enabled. Duh.
+	</div>
+</noscript>
 </head>
 <body>
-<div id="canvasdiv" onmousedown="moveBegin(this)" onmouseup="moveEnd(this)" onmouseout="moveEnd(this)" onmousemove="move(this)"><canvas id="canvas"></div>
-<div id="controldiv">
-	<div id="controlholder">
-		<a id="addimage" href="javascript:addImage()">+</a>
-		<input type="range" min="0" max="100" value="100" id="opac" onchange="opacChange(this)" disabled="true"/>
-		<div id="layers" ondrop="layerDrop()" ondragover="layerDragOver()"></div>
+<div id="page_container">
+	<div id="canvasdiv" onmousedown="moveBegin(this)" onmouseup="moveEnd(this)" onmouseout="moveEnd(this)" onmousemove="move(this)"><canvas id="canvas"></div>
+	<div id="controldiv">
+		<div id="controlholder">
+			<a id="addimage" href="javascript:addImage()">+</a>
+			<input type="range" min="0" max="100" value="100" id="opac" onchange="opacChange(this)" disabled="true"/>
+			<div id="layers" ondrop="layerDrop()" ondragover="layerDragOver()"></div>
+		</div>
 	</div>
 </div>
 </body>
