@@ -488,7 +488,7 @@ function LoadModel(model) {
     var mesh = new ObjMesh;
 
     var xhttp = new XMLHttpRequest();
-    var url = "./" + model + ".obj";
+    var url = "/objs/" + model + ".obj";
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
             mesh.parse( this.responseText );
