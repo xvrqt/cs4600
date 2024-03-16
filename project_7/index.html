@@ -937,7 +937,7 @@ function LoadModel(model) {
     var mesh = new ObjMesh;
 
     var xhttp = new XMLHttpRequest();
-    var url = "./" + model + ".obj";
+    var url = "/objs/" + model + ".obj";
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
             massSpring.setMesh(this.responseText);
@@ -1240,7 +1240,7 @@ input[type=button] {
 <div class="control"><img id="texture-img" /></div>
 <div class="control-group">
     <h3>Pre-Loaded Models</h3>
-    <div class="control"><br/><button type="button" onclick="LoadModel('teapot')">Teapot</button></div>
+    <div class="control"><br/><button type="button" onclick="LoadModel('low-poly-teapot')">Teapot</button></div>
     <hr />
 </div>
 <div class="control-group">
