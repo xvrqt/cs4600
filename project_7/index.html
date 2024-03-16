@@ -1156,7 +1156,7 @@ input[type=button] {
 @media (orientation: portrait) {
 	#canvas-div {
 		width:  100%;
-		height: calc(100% - 20em);
+		height: calc(100vh - 20em);
 	}
 	#controls-div {
 		width:  100%;
@@ -1174,10 +1174,51 @@ input[type=button] {
 		height: 5em;
 	}
 }
+#noscript {
+    display: grid;
+    justify-content: center;
+    align-content: center;
+	font-size: 1.5em;
+	font-family: monospace;
+    color: #DD2222;
+	text-align: center;
+    height: 100vh;
+    width: 100vw;
+
+	animation: noscriptimg;
+	animation-duration: 4s;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
+}
+
+@keyframes noscriptimg {
+	0%   { transform: rotate3d(.9, .9, .1,  0deg); }
+	25%  { transform: rotate3d(.9, .9, .1,  5deg); }
+	50%  { transform: rotate3d(.9, .9, .1,  0deg); }
+	75%  { transform: rotate3d(.9, .9, .1, -5deg); }
+	100% { transform: rotate3d(.9, .9, .1,  0deg); }
+}
+
+#noscript img {
+	max-width: 512px;
+    display: inline-block;
+    margin: 15px;
+	border-radius: 10px;
+    box-shadow: 0px 0px 10px #000;
+}
 </style>
+<noscript>
+	<style type="text/css">#page_container {display:none;}body {background-image: none!important; background-color: #444!important;width:100vw;height:100vh;position:absolute;top:0;left:0;}</style>
+	<div id="noscript">
+		<img src="/imgs/noscript.png" />
+		<br />
+		This is a WebGL Demo. You need JS enabled. Duh.
+	</div>
+</noscript>
 
 </head>
 <body onresize="WindowResize()">
+<div id="page_container">
 <div id="canvas-div"><canvas id="canvas"></canvas></div><div id="controls-div">
 <div id="controls">
 <div class="control-group"><canvas id="lightcontrol"></canvas><div id="lightcontrol-label">Light Direction</div></div>
@@ -1207,6 +1248,7 @@ input[type=button] {
     <div class="control"><br/><button type="button" onclick="LoadTexture2('bricks')">Bricks</button></div>
     <div class="control"><br/><button type="button" onclick="LoadTexture2('wood')">Wood</button></div>
     <div class="control"><br/><button type="button" onclick="LoadTexture2('amy')">Amy</button></div>
+</div>
 </div>
 </div>
 </div>

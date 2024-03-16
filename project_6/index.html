@@ -958,10 +958,51 @@ canvas {
 	font-size: 70%;
 	outline: none;
 }
+#noscript {
+    display: grid;
+    justify-content: center;
+    align-content: center;
+	font-size: 1.5em;
+	font-family: monospace;
+    color: #DD2222;
+	text-align: center;
+    height: 100vh;
+    width: 100vw;
+
+	animation: noscriptimg;
+	animation-duration: 4s;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
+}
+
+@keyframes noscriptimg {
+	0%   { transform: rotate3d(.9, .9, .1,  0deg); }
+	25%  { transform: rotate3d(.9, .9, .1,  5deg); }
+	50%  { transform: rotate3d(.9, .9, .1,  0deg); }
+	75%  { transform: rotate3d(.9, .9, .1, -5deg); }
+	100% { transform: rotate3d(.9, .9, .1,  0deg); }
+}
+
+#noscript img {
+	max-width: 512px;
+    display: inline-block;
+    margin: 15px;
+	border-radius: 10px;
+    box-shadow: 0px 0px 10px #000;
+}
 </style>
+<noscript>
+	<style type="text/css">#page_container {display:none;}body {background-image: none!important; background-color: #444!important;width:100vw;height:100vh;position:absolute;top:0;left:0;}</style>
+	<div id="noscript">
+		<img src="/imgs/noscript.png" />
+		<br />
+		This is a WebGL Demo. You need JS enabled. Duh.
+	</div>
+</noscript>
 
 </head>
 <body onresize="WindowResize()">
+<div id="page_container">
 <div id="canvas-div"><canvas id="canvas"></canvas></div><div id="controls-div">
 <div id="buttons"><input type="button" value="V" onclick="ShowControls()"/></div>
 <div id="controls">
@@ -974,6 +1015,7 @@ canvas {
 <div class="control"><span id="bounces-label">Bounce Limit:</span><span class="val"><span class="value" id="bounces-value">5</span><input type="button" value="+" onclick="IncBounceLimit(1)"><input type="button" value="&ndash;" onclick="IncBounceLimit(-1)"></span><input id="bounces-range" type="range" min="0" max="16" value="5" oninput="SetBounceLimit(this.value)"/></div>
 <div class="control"><span id="count-label">Sphere Count:</span><span class="val"><span class="value" id="count-value">10</span><input type="button" value="+" onclick="IncCount(1)"><input type="button" value="&ndash;" onclick="IncCount(-1)"></span><input id="count-range" type="range" min="1" max="100" value="10" oninput="SetCount(this.value)" onchange="NewScene()"/></div>
 <div class="control"><input type="button" class="btn" value="New Random Scene" onclick="NewScene()"></div>
+</div>
 </div>
 </div>
 </div>
